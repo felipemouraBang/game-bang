@@ -1,0 +1,9 @@
+{
+  "name": "Copy of Bang Ranking",
+  "description": "Aplicativo de ranking e gestão para a academia Leandro Bang Fight e Fitness",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
