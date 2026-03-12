@@ -13,7 +13,7 @@ export const UNITS = [
   'Moinho Muay',
   'Protásio Fitness',
   'Protásio Muay',
-  'Protásio Boxe',
+  'Protásio Fight',
   'Cristiano Muay',
   'Cristiano Fitness',
   'ZS Muay',
