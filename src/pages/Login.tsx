@@ -96,10 +96,6 @@ export default function Login() {
             CRIAR CONTA DE ALUNO
           </button>
         </div>
-
-        <div className="mt-6 text-center text-xs text-slate-500">
-          Leandro Bang Fight e Fitness &copy; 2024
-        </div>
       </div>
     </div>
   );

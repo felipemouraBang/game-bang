@@ -34,7 +34,6 @@ export default function Layout() {
       `}>
         <div className="p-6 border-b border-slate-700 hidden md:block">
           <h1 className="text-2xl font-bold text-orange-500">BANG RANKING v1.1</h1>
-          <p className="text-xs text-slate-400 mt-1">Leandro Bang Fight e Fitness</p>
         </div>
 
         <div className="p-6">
