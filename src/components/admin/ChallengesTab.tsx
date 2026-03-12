@@ -52,6 +52,7 @@ export default function ChallengesTab() {
     try {
       const payload = {
         ...formData,
+        points: parseInt(formData.points, 10) || 0,
         start_date: new Date(formData.start_date).toISOString(),
         end_date: new Date(formData.end_date).toISOString(),
       };

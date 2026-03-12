@@ -8,7 +8,8 @@ export default function CreateChallenge() {
     title: '',
     description: '',
     start_date: '',
-    end_date: ''
+    end_date: '',
+    points: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -21,10 +22,17 @@ export default function CreateChallenge() {
     setSuccess(false);
 
     try {
+      const payload = {
+        ...formData,
+        points: parseInt(formData.points, 10) || 0,
+        start_date: new Date(formData.start_date).toISOString(),
+        end_date: new Date(formData.end_date).toISOString(),
+      };
+
       const res = await fetch('/api/challenges', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
         credentials: 'include'
       });
 
@@ -65,16 +73,29 @@ export default function CreateChallenge() {
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-2">Título do Desafio</label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={e => setFormData({...formData, title: e.target.value})}
-                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-orange-500 focus:outline-none"
-                placeholder="Ex: Desafio de Verão 30 Dias"
-                required
-              />
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-slate-400 mb-2">Título do Desafio</label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={e => setFormData({...formData, title: e.target.value})}
+                  className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-orange-500 focus:outline-none"
+                  placeholder="Ex: Desafio de Verão 30 Dias"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-2">Pontos</label>
+                <input
+                  type="number"
+                  value={formData.points}
+                  onChange={e => setFormData({...formData, points: e.target.value})}
+                  className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-orange-500 focus:outline-none"
+                  placeholder="Ex: 50"
+                  required
+                />
+              </div>
             </div>
 
             <div>
