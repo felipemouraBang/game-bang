@@ -23,7 +23,8 @@ async function startServer() {
   await initSupabaseDb();
 
   app.set('trust proxy', 1); // Trust first proxy (required for secure cookies behind Nginx/GCP)
-  app.use(express.json());
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
   app.use(cookieParser());
 
   // API Routes
