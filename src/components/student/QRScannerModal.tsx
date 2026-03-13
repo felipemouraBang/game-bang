@@ -1,36 +1,54 @@
-import React, { useEffect, useState } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import React, { useEffect, useState, useRef } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
 import { X, Loader2, CheckCircle } from 'lucide-react';
 
 export default function QRScannerModal({ onClose }) {
   const [loading, setLoading] = useState(false);
+  const [cameraLoading, setCameraLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
-    const scanner = new Html5QrcodeScanner(
-      "qr-reader",
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      false
-    );
+    const startScanner = async () => {
+      try {
+        const html5QrCode = new Html5Qrcode("qr-reader");
+        scannerRef.current = html5QrCode;
 
-    scanner.render(onScanSuccess, onScanFailure);
-
-    function onScanSuccess(decodedText) {
-      if (decodedText === 'BANG_FIGHT_CHECKIN_QR') {
-        scanner.clear();
-        handleCheckin();
-      } else {
-        setError('QR Code inválido para check-in.');
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          (decodedText) => {
+            if (decodedText === 'BANG_FIGHT_CHECKIN_QR') {
+              html5QrCode.stop().then(() => {
+                handleCheckin();
+              }).catch(console.error);
+            } else {
+              setError('QR Code inválido para check-in.');
+            }
+          },
+          (errorMessage) => {
+            // Ignore scan failures
+          }
+        );
+        setCameraLoading(false);
+      } catch (err) {
+        console.error("Error starting QR scanner:", err);
+        setCameraLoading(false);
+        setError('Não foi possível acessar a câmera. Verifique as permissões.');
       }
-    }
+    };
 
-    function onScanFailure(error) {
-      // Ignore scan failures as they happen continuously until a code is found
-    }
+    startScanner();
 
     return () => {
-      scanner.clear().catch(console.error);
+      if (scannerRef.current) {
+        try {
+          scannerRef.current.stop().catch(() => {});
+        } catch (e) {
+          // ignore
+        }
+      }
     };
   }, []);
 
@@ -83,7 +101,15 @@ export default function QRScannerModal({ onClose }) {
             </div>
           ) : (
             <>
-              <div id="qr-reader" className="w-full bg-black rounded-lg overflow-hidden border border-slate-700"></div>
+              <div className="relative w-full bg-black rounded-lg overflow-hidden border border-slate-700 min-h-[250px] flex items-center justify-center">
+                {cameraLoading && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/80 z-10">
+                    <Loader2 className="w-10 h-10 text-orange-500 animate-spin mb-2" />
+                    <p className="text-slate-400 text-sm">Iniciando câmera...</p>
+                  </div>
+                )}
+                <div id="qr-reader" className="w-full h-full"></div>
+              </div>
               {error && (
                 <div className="text-red-400 text-sm bg-red-500/10 p-3 rounded mt-4">
                   {error}

@@ -13,6 +13,7 @@ export default function Profile() {
     confirmPassword: ''
   });
   const [loading, setLoading] = useState(false);
+  const [compressing, setCompressing] = useState(false);
   const [message, setMessage] = useState('');
   const [notifications, setNotifications] = useState([]);
   const fileInputRef = useRef(null);
@@ -33,7 +34,7 @@ export default function Profile() {
     }
   };
 
-  const markAsRead = async (id) => {
+  const markAsRead = async (id: number) => {
     try {
       await fetch(`/api/users/notifications/${id}/read`, { 
         method: 'POST',
@@ -48,6 +49,7 @@ export default function Profile() {
   const handlePhotoUpload = (e: any) => {
     const file = e.target.files[0];
     if (file) {
+      setCompressing(true);
       const reader = new FileReader();
       reader.onloadend = () => {
         const img = new Image();
@@ -55,7 +57,7 @@ export default function Profile() {
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-          const max_size = 800;
+          const max_size = 400;
 
           if (width > height) {
             if (width > max_size) {
@@ -74,11 +76,20 @@ export default function Profile() {
           const ctx = canvas.getContext('2d');
           if (ctx) {
             ctx.drawImage(img, 0, 0, width, height);
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
             setFormData({ ...formData, photo: dataUrl });
           }
+          setCompressing(false);
+        };
+        img.onerror = () => {
+          setCompressing(false);
+          setMessage('Erro ao processar a imagem. Tente outra foto.');
         };
         img.src = reader.result as string;
+      };
+      reader.onerror = () => {
+        setCompressing(false);
+        setMessage('Erro ao ler o arquivo.');
       };
       reader.readAsDataURL(file);
     }
@@ -112,11 +123,12 @@ export default function Profile() {
       if (res.ok) {
         setMessage('Dados atualizados com sucesso! (Recarregue a página para ver a nova foto no menu)');
       } else {
-        setMessage('Erro ao atualizar dados.');
+        const errData = await res.json().catch(() => ({}));
+        setMessage(`Erro ao atualizar dados: ${errData.error || 'Tente novamente.'}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setMessage('Erro de conexão.');
+      setMessage(`Erro de conexão: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -236,11 +248,11 @@ export default function Profile() {
           <div className="flex justify-end pt-6">
             <button
               type="submit"
-              disabled={loading}
-              className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg shadow-lg shadow-orange-500/20 flex items-center transition-all hover:scale-105"
+              disabled={loading || compressing}
+              className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg shadow-lg shadow-orange-500/20 flex items-center transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-5 h-5 mr-2" />
-              {loading ? 'Salvando...' : 'Salvar Alterações'}
+              {loading ? 'Salvando...' : compressing ? 'Processando foto...' : 'Salvar Alterações'}
             </button>
           </div>
         </form>
