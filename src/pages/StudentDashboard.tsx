@@ -121,13 +121,24 @@ export default function StudentDashboard() {
 
         <button 
           onClick={() => handleActionClick('referral_deal')}
-          className="bg-slate-800 hover:bg-slate-700 p-4 rounded-xl border border-slate-700 flex flex-col items-center justify-center transition-all active:scale-95 group col-span-2"
+          className="bg-slate-800 hover:bg-slate-700 p-4 rounded-xl border border-slate-700 flex flex-col items-center justify-center transition-all active:scale-95 group"
         >
           <div className="bg-emerald-500/20 p-3 rounded-full mb-2 group-hover:bg-emerald-500/30 transition-colors">
             <Handshake className="w-6 h-6 text-emerald-400" />
           </div>
           <span className="text-xs font-medium text-slate-300">Amigo Fechou Plano</span>
           <span className="text-[10px] text-orange-500 font-bold mt-1">+20 pts</span>
+        </button>
+
+        <button 
+          onClick={() => handleActionClick('graduation')}
+          className="bg-slate-800 hover:bg-slate-700 p-4 rounded-xl border border-slate-700 flex flex-col items-center justify-center transition-all active:scale-95 group"
+        >
+          <div className="bg-yellow-500/20 p-3 rounded-full mb-2 group-hover:bg-yellow-500/30 transition-colors">
+            <Award className="w-6 h-6 text-yellow-400" />
+          </div>
+          <span className="text-xs font-medium text-slate-300">Graduação</span>
+          <span className="text-[10px] text-orange-500 font-bold mt-1">+10 pts</span>
         </button>
       </div>
 

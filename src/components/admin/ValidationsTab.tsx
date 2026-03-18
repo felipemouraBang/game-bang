@@ -40,6 +40,7 @@ export default function ValidationsTab() {
       case 'post': return <Image className="w-5 h-5 text-purple-400" />;
       case 'referral': return <UserPlus className="w-5 h-5 text-green-400" />;
       case 'bonus_week': return <Star className="w-5 h-5 text-yellow-400" />;
+      case 'graduation': return <Star className="w-5 h-5 text-yellow-500" />;
       default: return <Star className="w-5 h-5 text-slate-400" />;
     }
   };
@@ -52,6 +53,7 @@ export default function ValidationsTab() {
       case 'referral_deal': return 'Fechamento';
       case 'bonus_week': return 'Bônus Semanal';
       case 'challenge_completion': return 'Desafio';
+      case 'graduation': return 'Graduação';
       default: return type;
     }
   };

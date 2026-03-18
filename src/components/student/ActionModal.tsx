@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Camera, UserPlus, X, Loader2 } from 'lucide-react';
+import { MapPin, Camera, UserPlus, X, Loader2, Award } from 'lucide-react';
 
 export default function ActionModal({ type, onClose }) {
   const [loading, setLoading] = useState(false);
@@ -31,7 +31,7 @@ export default function ActionModal({ type, onClose }) {
           lng: position.coords.longitude,
           accuracy: position.coords.accuracy
         });
-      } else if (type === 'referral' || type === 'referral_deal') {
+      } else if (type === 'referral' || type === 'referral_deal' || type === 'graduation') {
         const friendName = e.target.friendName.value;
         const friendPhone = e.target.friendPhone.value;
         
@@ -41,6 +41,8 @@ export default function ActionModal({ type, onClose }) {
         });
         finalDetails = type === 'referral' 
           ? `Indicação: ${friendName} (${friendPhone})`
+          : type === 'graduation'
+          ? `Graduação: ${friendName} (${friendPhone})`
           : `Amigo Fechou Plano: ${friendName} (${friendPhone})`;
       }
 
@@ -71,6 +73,7 @@ export default function ActionModal({ type, onClose }) {
       case 'post': return 'Enviar Postagem';
       case 'referral': return 'Indicar Amigo';
       case 'referral_deal': return 'Amigo Fechou Plano';
+      case 'graduation': return 'Graduação';
       default: return 'Ação';
     }
   };
@@ -81,6 +84,7 @@ export default function ActionModal({ type, onClose }) {
       case 'post': return <Camera className="w-8 h-8 text-purple-500 mb-4" />;
       case 'referral': return <UserPlus className="w-8 h-8 text-green-500 mb-4" />;
       case 'referral_deal': return <UserPlus className="w-8 h-8 text-emerald-500 mb-4" />;
+      case 'graduation': return <Award className="w-8 h-8 text-yellow-500 mb-4" />;
       default: return null;
     }
   };
@@ -125,10 +129,12 @@ export default function ActionModal({ type, onClose }) {
                 </div>
               )}
 
-              {(type === 'referral' || type === 'referral_deal') && (
+              {(type === 'referral' || type === 'referral_deal' || type === 'graduation') && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm text-slate-400 mb-2 text-left">Nome Completo do Amigo</label>
+                    <label className="block text-sm text-slate-400 mb-2 text-left">
+                      {type === 'graduation' ? 'Seu Nome Completo' : 'Nome Completo do Amigo'}
+                    </label>
                     <input 
                       type="text"
                       name="friendName"
@@ -138,7 +144,9 @@ export default function ActionModal({ type, onClose }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-slate-400 mb-2 text-left">WhatsApp do Amigo</label>
+                    <label className="block text-sm text-slate-400 mb-2 text-left">
+                      {type === 'graduation' ? 'Seu WhatsApp' : 'WhatsApp do Amigo'}
+                    </label>
                     <input 
                       type="text"
                       name="friendPhone"
@@ -164,6 +172,7 @@ export default function ActionModal({ type, onClose }) {
                   type === 'checkin' ? 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20' :
                   type === 'post' ? 'bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-500/20' :
                   type === 'referral_deal' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20' :
+                  type === 'graduation' ? 'bg-yellow-600 hover:bg-yellow-700 shadow-lg shadow-yellow-500/20' :
                   'bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/20'
                 }`}
               >

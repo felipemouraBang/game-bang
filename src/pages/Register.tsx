@@ -110,7 +110,7 @@ export default function Register() {
             />
           </div>
           <h1 className="text-3xl font-bold text-orange-500 mb-2">CRIAR CONTA</h1>
-          <p className="text-slate-400">Junte-se ao ranking da Bang Fight e Fitness</p>
+          <p className="text-slate-400">Junte-se ao game da Team Bang Fight E Fitness</p>
         </div>
 
         {error && (

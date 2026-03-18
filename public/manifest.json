@@ -1,0 +1,23 @@
+{
+  "name": "Bang Game",
+  "short_name": "Bang Game",
+  "description": "Team Bang Fight E Fitness",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#f97316",
+  "icons": [
+    {
+      "src": "/logo-do-meio.png.PNG",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo-do-meio.png.PNG",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

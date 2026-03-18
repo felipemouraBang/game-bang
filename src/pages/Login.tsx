@@ -44,8 +44,8 @@ export default function Login() {
               onError={(e) => { e.currentTarget.style.display = 'none'; }}
             />
           </div>
-          <h1 className="text-3xl font-bold text-orange-500 mb-2">BANG RANKING</h1>
-          <p className="text-slate-400 font-bold tracking-wider">LEANDRO BANG FIGHT E FITNESS</p>
+          <h1 className="text-3xl font-bold text-orange-500 mb-2">BANG GAME</h1>
+          <p className="text-slate-400 font-bold tracking-wider">TEAM BANG FIGHT E FITNESS</p>
         </div>
 
         {error && (

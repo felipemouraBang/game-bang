@@ -20,7 +20,7 @@ export default function Layout() {
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col md:flex-row">
       {/* Mobile Header */}
       <div className="md:hidden bg-slate-800 p-4 flex justify-between items-center border-b border-slate-700 sticky top-0 z-50">
-        <h1 className="text-xl font-bold text-orange-500">BANG RANKING v1.1</h1>
+        <h1 className="text-xl font-bold text-orange-500">BANG GAME v1.1</h1>
         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-white">
           {isSidebarOpen ? <X /> : <Menu />}
         </button>
@@ -33,7 +33,7 @@ export default function Layout() {
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="p-6 border-b border-slate-700 hidden md:block">
-          <h1 className="text-2xl font-bold text-orange-500">BANG RANKING v1.1</h1>
+          <h1 className="text-2xl font-bold text-orange-500">BANG GAME v1.1</h1>
         </div>
 
         <div className="p-6">

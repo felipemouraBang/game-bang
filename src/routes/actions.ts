@@ -9,7 +9,8 @@ const POINTS_MAP = {
   post: 5,
   referral: 10,
   referral_deal: 20,
-  bonus_week: 5
+  bonus_week: 5,
+  graduation: 10
 };
 
 // Submit Action (Student)

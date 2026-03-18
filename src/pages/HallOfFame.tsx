@@ -54,7 +54,7 @@ export default function HallOfFame() {
           <Trophy className="w-10 h-10 text-yellow-500 mr-3" />
           Hall da Fama
         </h1>
-        <p className="text-slate-400">Os maiores guerreiros da Bang Fight e Fitness</p>
+        <p className="text-slate-400">Os maiores guerreiros da Team Bang Fight E Fitness</p>
       </div>
 
       {/* Top 3 Anual Global */}
