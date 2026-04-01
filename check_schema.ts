@@ -7,7 +7,7 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABAS
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function check() {
-  const { data, error } = await supabase.from('users').select('photo').limit(1);
+  const { data, error } = await supabase.from('users').select('id, login, role').limit(5);
   console.log('Data:', data);
   console.log('Error:', error);
 }

@@ -11,7 +11,8 @@ export async function initSupabaseDb() {
       .maybeSingle();
 
     if (!adminExists) {
-      const hashedPassword = bcrypt.hashSync('Moura', 10);
+      const defaultAdminPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'Moura';
+      const hashedPassword = bcrypt.hashSync(defaultAdminPassword, 10);
       await supabase.from('users').insert({
         name: 'Administrador Master',
         login: 'Admin',

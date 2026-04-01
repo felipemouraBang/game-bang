@@ -15,7 +15,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Initialize DB defaults
   await initSupabaseDb();
 
-  const { login, password } = req.body;
+  const { login: rawLogin, password: rawPassword } = req.body;
+  const login = rawLogin?.trim();
+  const password = rawPassword?.trim();
 
   try {
     const { data: user, error } = await supabase

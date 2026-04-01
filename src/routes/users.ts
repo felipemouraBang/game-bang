@@ -39,7 +39,7 @@ router.get('/notifications', authenticate, async (req, res) => {
 
 // Mark Notification as Read (Self)
 router.post('/notifications/:id/read', authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = req.params.id;
   const { error } = await supabase
     .from('notifications')
     .update({ read: true })
@@ -52,8 +52,8 @@ router.post('/notifications/:id/read', authenticate, async (req, res) => {
 
 // Get single user (Admin/Receptionist/Self)
 router.get('/:id', authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
-  if (req.user.role !== 'admin' && req.user.role !== 'receptionist' && req.user.id !== id) {
+  const id = req.params.id;
+  if (req.user.role !== 'admin' && req.user.role !== 'receptionist' && String(req.user.id) !== String(id)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
   const { data: user, error } = await supabase
@@ -111,11 +111,11 @@ router.post('/', authenticate, authorize(['admin']), async (req, res) => {
 
 // Update user (Admin or Self)
 router.put('/:id', authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = req.params.id;
   const { name, login, password, email, photo, nickname, role, is_active, unit } = req.body;
 
   // Check permissions
-  if (req.user.role !== 'admin' && req.user.id !== id) {
+  if (req.user.role !== 'admin' && String(req.user.id) !== String(id)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
@@ -185,7 +185,7 @@ router.put('/:id', authenticate, async (req, res) => {
 
 // Delete user (Admin only)
 router.delete('/:id', authenticate, authorize(['admin']), async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = req.params.id;
   const { data: user } = await supabase
     .from('users')
     .select('login')
@@ -206,9 +206,11 @@ router.delete('/:id', authenticate, authorize(['admin']), async (req, res) => {
     await supabase.from('hall_of_fame').delete().eq('user_id', id);
     await supabase.from('challenges').update({ winner_id: null }).eq('winner_id', id);
     
-    // Reassign challenges created by this user to Master Admin (assuming id 1 is Master Admin)
-    // We should find the Master Admin ID dynamically if possible, but 1 is usually it.
-    await supabase.from('challenges').update({ created_by: 1 }).eq('created_by', id);
+    // Reassign challenges created by this user to Master Admin
+    const { data: masterAdmin } = await supabase.from('users').select('id').eq('login', 'Admin').single();
+    if (masterAdmin) {
+      await supabase.from('challenges').update({ created_by: masterAdmin.id }).eq('created_by', id);
+    }
 
     const { error: deleteError } = await supabase.from('users').delete().eq('id', id);
     if (deleteError) throw deleteError;

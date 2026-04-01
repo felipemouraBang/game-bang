@@ -156,7 +156,7 @@ router.get('/pending', authenticate, authorize(['admin', 'receptionist']), async
 
 // Validate Action (Admin/Receptionist)
 router.post('/:id/validate', authenticate, authorize(['admin', 'receptionist']), async (req, res) => {
-  const actionId = parseInt(req.params.id);
+  const actionId = req.params.id;
   const { data: action, error: actionFetchError } = await supabase
     .from('actions')
     .select('*')
@@ -229,7 +229,7 @@ router.post('/:id/validate', authenticate, authorize(['admin', 'receptionist']),
 
 // Reject Action (Admin/Receptionist)
 router.post('/:id/reject', authenticate, authorize(['admin', 'receptionist']), async (req, res) => {
-  const actionId = parseInt(req.params.id);
+  const actionId = req.params.id;
   
   const { error } = await supabase
     .from('actions')
