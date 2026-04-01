@@ -63,7 +63,7 @@ const MOTIVATIONS = {
   ]
 };
 
-export async function checkAndSendDailyMotivation(userId: number) {
+export async function checkAndSendDailyMotivation(userId: string) {
   const today = new Date();
   const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
   const dateStr = today.toISOString().split('T')[0];
