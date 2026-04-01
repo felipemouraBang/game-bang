@@ -25,19 +25,40 @@ export default function ActionModal({ type, onClose }) {
           throw new Error('Geolocalização não suportada');
         }
 
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, (err) => {
+        const getPosition = (highAccuracy: boolean, timeout: number): Promise<GeolocationPosition> => {
+          return new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: highAccuracy,
+              timeout: timeout,
+              maximumAge: 0
+            });
+          });
+        };
+
+        let position: GeolocationPosition;
+        try {
+          // Try with high accuracy first (better for gym verification)
+          position = await getPosition(true, 20000);
+        } catch (err: any) {
+          if (err.code === err.TIMEOUT) {
+            console.warn("High accuracy timeout, falling back to lower accuracy...");
+            try {
+              // Fallback to lower accuracy if high accuracy times out
+              position = await getPosition(false, 10000);
+            } catch (fallbackErr: any) {
+              let msg = 'Erro ao obter localização';
+              if (fallbackErr.code === fallbackErr.PERMISSION_DENIED) msg = 'Permissão de localização negada pelo navegador';
+              else if (fallbackErr.code === fallbackErr.POSITION_UNAVAILABLE) msg = 'Localização indisponível no momento';
+              else if (fallbackErr.code === fallbackErr.TIMEOUT) msg = 'Tempo esgotado ao buscar localização. Tente novamente em um local aberto ou com sinal melhor.';
+              throw new Error(msg);
+            }
+          } else {
             let msg = 'Erro ao obter localização';
             if (err.code === err.PERMISSION_DENIED) msg = 'Permissão de localização negada pelo navegador';
             else if (err.code === err.POSITION_UNAVAILABLE) msg = 'Localização indisponível no momento';
-            else if (err.code === err.TIMEOUT) msg = 'Tempo esgotado ao buscar localização. Tente novamente em um local aberto.';
-            reject(new Error(msg));
-          }, {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 0
-          });
-        });
+            throw new Error(msg);
+          }
+        }
 
         proof = JSON.stringify({
           lat: position.coords.latitude,
