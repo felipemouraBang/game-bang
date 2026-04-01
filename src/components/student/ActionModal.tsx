@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MapPin, Camera, UserPlus, X, Loader2, Award } from 'lucide-react';
 
 export default function ActionModal({ type, onClose }) {
+  const [modality, setModality] = useState('checkin_muay_thai');
   const [loading, setLoading] = useState(false);
   const [details, setDetails] = useState('');
   const [error, setError] = useState('');
@@ -13,17 +14,29 @@ export default function ActionModal({ type, onClose }) {
     setError('');
 
     try {
+      let finalType = type;
       let proof = details;
       let finalDetails = details;
 
       if (type === 'checkin') {
+        finalType = modality;
         // Get GPS
         if (!navigator.geolocation) {
           throw new Error('Geolocalização não suportada');
         }
 
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject);
+          navigator.geolocation.getCurrentPosition(resolve, (err) => {
+            let msg = 'Erro ao obter localização';
+            if (err.code === err.PERMISSION_DENIED) msg = 'Permissão de localização negada pelo navegador';
+            else if (err.code === err.POSITION_UNAVAILABLE) msg = 'Localização indisponível no momento';
+            else if (err.code === err.TIMEOUT) msg = 'Tempo esgotado ao buscar localização. Tente novamente em um local aberto.';
+            reject(new Error(msg));
+          }, {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0
+          });
         });
 
         proof = JSON.stringify({
@@ -49,7 +62,7 @@ export default function ActionModal({ type, onClose }) {
       const res = await fetch('/api/actions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, proof, details: finalDetails })
+        body: JSON.stringify({ type: finalType, proof, details: finalDetails })
       });
 
       if (res.ok) {
@@ -108,11 +121,25 @@ export default function ActionModal({ type, onClose }) {
               Ação enviada com sucesso! Aguardando validação.
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            <form onSubmit={handleSubmit} className="mt-6 space-y-4 text-left">
               {type === 'checkin' && (
-                <p className="text-slate-400 text-sm">
-                  Certifique-se de estar na academia. Vamos verificar sua localização.
-                </p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-2">Selecione a Modalidade</label>
+                    <select 
+                      value={modality}
+                      onChange={e => setModality(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none"
+                    >
+                      <option value="checkin_muay_thai">Check-in Muay Thai</option>
+                      <option value="checkin_fitness">Check-in Fitness</option>
+                      <option value="checkin_fight">Check-in Fight</option>
+                    </select>
+                  </div>
+                  <p className="text-slate-400 text-sm text-center">
+                    Certifique-se de estar na academia. Vamos verificar sua localização.
+                  </p>
+                </div>
               )}
 
               {type === 'post' && (
@@ -176,7 +203,12 @@ export default function ActionModal({ type, onClose }) {
                   'bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/20'
                 }`}
               >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirmar'}
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    {type === 'checkin' ? 'Buscando localização...' : 'Enviando...'}
+                  </>
+                ) : 'Confirmar'}
               </button>
             </form>
           )}

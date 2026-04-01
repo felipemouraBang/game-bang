@@ -6,6 +6,9 @@ const router = express.Router();
 
 const POINTS_MAP = {
   checkin: 1,
+  checkin_muay_thai: 1,
+  checkin_fitness: 1,
+  checkin_fight: 1,
   post: 5,
   referral: 10,
   referral_deal: 20,
@@ -25,19 +28,22 @@ router.post('/', authenticate, async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
 
   // Check-in validation (GPS)
-  if (type === 'checkin') {
+  if (type.startsWith('checkin')) {
     const { data: existing } = await supabase
       .from('actions')
       .select('id')
       .eq('user_id', userId)
-      .eq('type', 'checkin')
+      .eq('type', type)
       .gte('created_at', `${today}T00:00:00Z`)
       .lte('created_at', `${today}T23:59:59Z`)
       .in('status', ['pending', 'approved'])
       .maybeSingle();
 
     if (existing) {
-      return res.status(400).json({ error: 'Você já fez check-in hoje.' });
+      const modalityName = type === 'checkin_muay_thai' ? 'Muay Thai' : 
+                          type === 'checkin_fitness' ? 'Fitness' : 
+                          type === 'checkin_fight' ? 'Fight' : 'Geral';
+      return res.status(400).json({ error: `Você já fez check-in no ${modalityName} hoje.` });
     }
   }
 
@@ -79,20 +85,24 @@ router.post('/', authenticate, async (req, res) => {
 // QR Code Check-in (Student)
 router.post('/qr-checkin', authenticate, async (req, res) => {
   const userId = req.user.id;
+  const { type = 'checkin' } = req.body;
   const today = new Date().toISOString().split('T')[0];
   
   const { data: existing } = await supabase
     .from('actions')
     .select('id')
     .eq('user_id', userId)
-    .eq('type', 'checkin')
+    .eq('type', type)
     .gte('created_at', `${today}T00:00:00Z`)
     .lte('created_at', `${today}T23:59:59Z`)
     .in('status', ['pending', 'approved'])
     .maybeSingle();
 
   if (existing) {
-    return res.status(400).json({ error: 'Você já fez check-in hoje.' });
+    const modalityName = type === 'checkin_muay_thai' ? 'Muay Thai' : 
+                        type === 'checkin_fitness' ? 'Fitness' : 
+                        type === 'checkin_fight' ? 'Fight' : 'Geral';
+    return res.status(400).json({ error: `Você já fez check-in no ${modalityName} hoje.` });
   }
 
   try {
@@ -101,7 +111,7 @@ router.post('/qr-checkin', authenticate, async (req, res) => {
       .from('actions')
       .insert({
         user_id: userId,
-        type: 'checkin',
+        type: type,
         status: 'approved',
         points: 1,
         proof: '{"method":"QR_CODE"}',

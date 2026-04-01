@@ -3,6 +3,7 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { X, Loader2, CheckCircle } from 'lucide-react';
 
 export default function QRScannerModal({ onClose }) {
+  const [modality, setModality] = useState('checkin_muay_thai');
   const [loading, setLoading] = useState(false);
   const [cameraLoading, setCameraLoading] = useState(true);
   const [error, setError] = useState('');
@@ -15,27 +16,42 @@ export default function QRScannerModal({ onClose }) {
         const html5QrCode = new Html5Qrcode("qr-reader");
         scannerRef.current = html5QrCode;
 
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          (decodedText) => {
-            if (decodedText === 'BANG_FIGHT_CHECKIN_QR') {
-              html5QrCode.stop().then(() => {
-                handleCheckin();
-              }).catch(console.error);
-            } else {
-              setError('QR Code inválido para check-in.');
-            }
-          },
-          (errorMessage) => {
-            // Ignore scan failures
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        const onScanSuccess = (decodedText: string) => {
+          if (decodedText === 'BANG_FIGHT_CHECKIN_QR') {
+            html5QrCode.stop().then(() => {
+              handleCheckin();
+            }).catch(console.error);
+          } else {
+            setError('QR Code inválido para check-in.');
           }
-        );
+        };
+
+        try {
+          // Try environment camera first (back camera)
+          await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, () => {});
+        } catch (envErr) {
+          console.warn("Environment camera not found, falling back to any camera:", envErr);
+          // Fallback to user camera or any available camera
+          try {
+            await html5QrCode.start({ facingMode: "user" }, config, onScanSuccess, () => {});
+          } catch (userErr) {
+            console.warn("User camera not found, trying default start:", userErr);
+            // Last resort: just try to start with any camera
+            const cameras = await Html5Qrcode.getCameras();
+            if (cameras && cameras.length > 0) {
+              await html5QrCode.start(cameras[0].id, config, onScanSuccess, () => {});
+            } else {
+              throw new Error("Nenhuma câmera encontrada no dispositivo.");
+            }
+          }
+        }
+        
         setCameraLoading(false);
       } catch (err) {
         console.error("Error starting QR scanner:", err);
         setCameraLoading(false);
-        setError('Não foi possível acessar a câmera. Verifique as permissões.');
+        setError('Não foi possível acessar a câmera. Verifique as permissões ou se o dispositivo possui câmera.');
       }
     };
 
@@ -52,6 +68,12 @@ export default function QRScannerModal({ onClose }) {
     };
   }, []);
 
+  // Use a ref to always have the latest modality in the handleCheckin callback
+  const modalityRef = useRef(modality);
+  useEffect(() => {
+    modalityRef.current = modality;
+  }, [modality]);
+
   const handleCheckin = async () => {
     setLoading(true);
     setError('');
@@ -60,6 +82,7 @@ export default function QRScannerModal({ onClose }) {
       const res = await fetch('/api/actions/qr-checkin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: modalityRef.current })
       });
 
       if (res.ok) {
@@ -101,6 +124,19 @@ export default function QRScannerModal({ onClose }) {
             </div>
           ) : (
             <>
+              <div className="mb-4 text-left">
+                <label className="block text-sm text-slate-400 mb-2">Selecione a Modalidade</label>
+                <select 
+                  value={modality}
+                  onChange={e => setModality(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-orange-500 focus:outline-none"
+                >
+                  <option value="checkin_muay_thai">Check-in Muay Thai</option>
+                  <option value="checkin_fitness">Check-in Fitness</option>
+                  <option value="checkin_fight">Check-in Fight</option>
+                </select>
+              </div>
+
               <div className="relative w-full bg-black rounded-lg overflow-hidden border border-slate-700 min-h-[250px] flex items-center justify-center">
                 {cameraLoading && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/80 z-10">
