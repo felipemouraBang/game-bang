@@ -2,6 +2,11 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
+// Import images directly so Vite bundles them correctly
+import logoEsquerda from '../../public/logo-da-esquerda.png.PNG';
+import logoMeio from '../../public/logo-do-meio.png.PNG';
+import logoDireita from '../../public/logo-da-direita.png.png';
+
 export default function Login() {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
@@ -26,19 +31,19 @@ export default function Login() {
         <div className="text-center mb-8">
           <div className="flex justify-center items-center gap-4 mb-6">
             <img 
-              src="/logo-da-esquerda.png.PNG" 
+              src={logoEsquerda} 
               alt="Logo Esquerda" 
               className="w-20 h-20 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none'; }}
             />
             <img 
-              src="/logo-do-meio.png.PNG" 
+              src={logoMeio} 
               alt="Logo Meio" 
               className="w-32 h-32 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none'; }}
             />
             <img 
-              src="/logo-da-direita.png.png" 
+              src={logoDireita} 
               alt="Logo Direita" 
               className="w-20 h-20 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none'; }}

@@ -3,6 +3,11 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { UserPlus, ArrowLeft } from 'lucide-react';
 
+// Import images directly so Vite bundles them correctly
+import logoEsquerda from '../../public/logo-da-esquerda.png.PNG';
+import logoMeio from '../../public/logo-do-meio.png.PNG';
+import logoDireita from '../../public/logo-da-direita.png.png';
+
 export const UNITS = [
   'Forte Muay',
   'Forte Fitness',
@@ -91,19 +96,19 @@ export default function Register() {
         <div className="text-center mb-8">
           <div className="flex justify-center items-center gap-4 mb-4">
             <img 
-              src="/logo-da-esquerda.png.PNG" 
+              src={logoEsquerda} 
               alt="Logo Esquerda" 
               className="w-16 h-16 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none'; }}
             />
             <img 
-              src="/logo-do-meio.png.PNG" 
+              src={logoMeio} 
               alt="Logo Meio" 
               className="w-24 h-24 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none'; }}
             />
             <img 
-              src="/logo-da-direita.png.png" 
+              src={logoDireita} 
               alt="Logo Direita" 
               className="w-16 h-16 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none'; }}
