@@ -17,7 +17,8 @@ const app = express();
 initSupabaseDb().catch(console.error);
 
 app.set('trust proxy', 1);
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
 
 // API Routes

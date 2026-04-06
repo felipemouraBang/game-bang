@@ -1,8 +1,8 @@
 import React from 'react';
 
-import logoEsquerda from '../../public/logo-da-esquerda.png.PNG';
-import logoMeio from '../../public/logo-do-meio.png.PNG';
-import logoDireita from '../../public/logo-da-direita.png.png';
+import logoEsquerda from '../assets/logo-da-esquerda.png.PNG';
+import logoMeio from '../assets/logo-do-meio.png.PNG';
+import logoDireita from '../assets/logo-da-direita.png.png';
 
 export default function BackgroundLogos() {
   return (
