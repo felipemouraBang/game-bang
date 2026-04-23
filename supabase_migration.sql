@@ -1,4 +1,5 @@
 -- Migration for Supabase - Bang Ranking App
+-- Complete Schema and Initial Data
 
 -- 1. Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -37,10 +38,10 @@ CREATE TABLE IF NOT EXISTS challenges (
 CREATE TABLE IF NOT EXISTS actions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    type TEXT NOT NULL, -- 'challenge', 'daily', 'extra'
+    type TEXT NOT NULL, -- 'challenge', 'daily', 'extra', 'checkin', 'post', 'referral_deal', 'graduation'
     status TEXT DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
     points INTEGER DEFAULT 0,
-    proof JSONB, -- { image_url: string, description: string }
+    proof JSONB, -- { image_url: string, description: string, lat, lng, etc }
     validated_by UUID REFERENCES users(id) ON DELETE SET NULL,
     validated_at TIMESTAMP WITH TIME ZONE,
     challenge_id UUID REFERENCES challenges(id) ON DELETE SET NULL,
@@ -85,14 +86,40 @@ CREATE INDEX IF NOT EXISTS idx_actions_status ON actions(status);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON logs(timestamp DESC);
 
--- 9. Initial Master Admin (Optional, app also handles this)
--- Login: Admin | Password: Moura (hashed)
--- Note: The app's initSupabaseDb() will also try to create this if it doesn't exist.
-INSERT INTO users (name, login, password, role, nickname)
+-- 9. Initial Users Insertion
+-- Admin: Login 'Admin', Password 'Moura'
+INSERT INTO users (name, login, password, role, nickname, email, is_active)
 VALUES (
     'Administrador Master', 
     'Admin', 
-    '$2b$10$YhPOrK/Z65thWF2.nV46M.Bd7OjOaCX7fSjNX5YvssGjOeD2noCQO', 
+    '$2b$10$8snye28GHXCPaFy//02Fd.LSofBdCfzwidHUkf1v/cMbqM.tL3AHy', 
     'admin', 
-    'Mestre'
+    'Mestre',
+    'admin@bang.com',
+    true
+) ON CONFLICT (login) DO NOTHING;
+
+-- Receptionist: Login 'Recepcao', Password 'Teambang744'
+INSERT INTO users (name, login, password, role, nickname, email, is_active)
+VALUES (
+    'Recepção', 
+    'Recepcao', 
+    '$2b$10$3BYUGn9P8CjUsy9DZaWtfekWQ1NdcFRERjQrJSBa2No9iw5tk.28y', 
+    'receptionist', 
+    'Recepção',
+    'recepcao@bang.com',
+    true
+) ON CONFLICT (login) DO NOTHING;
+
+-- Test Student: Login 'Aluno', Password '123456'
+INSERT INTO users (name, login, password, role, nickname, email, unit, is_active)
+VALUES (
+    'Aluno Exemplo', 
+    'Aluno', 
+    '$2b$10$4MII9WxTRuntNlaSSfossepjeE.4xUlkKNjnMflo6u89xbTeBsDLe', 
+    'student', 
+    'Lutador',
+    'aluno@bang.com',
+    'Forte Fitness',
+    true
 ) ON CONFLICT (login) DO NOTHING;
