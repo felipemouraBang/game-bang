@@ -214,6 +214,9 @@ export default function ActionModal({ type, onClose }) {
               {type === 'donation' && (
                 <div className="space-y-4">
                   <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700 max-h-48 overflow-y-auto custom-scrollbar">
+                    <h3 className="text-lg font-bold text-center text-white mb-4 uppercase tracking-wide">
+                      Doe: Instituto Leandro Bang e Projovem
+                    </h3>
                     <p className="text-sm text-slate-300 mb-3 text-justify">
                       Uma iniciativa que nasceu com o propósito de transformar vidas através do Muaythai, oferecendo aulas para jovens e adolescentes, além de abrir portas para oportunidades reais de trabalho dentro das nossas academias e também na carreira como atletas.
                     </p>
@@ -232,7 +235,8 @@ export default function ActionModal({ type, onClose }) {
                   </div>
                   <div className="text-center bg-red-500/10 border border-red-500/20 rounded-lg p-3">
                     <p className="text-sm text-green-400 font-bold mb-1">
-                      Valor mínimo: R$ 10
+                      Valor mínimo: R$ 10 <br/>
+                      PIX: 51992476262
                     </p>
                     <p className="text-xs text-red-400 font-bold">
                       Para sua doação ser validada, envie o comprovante para o WhatsApp da academia.
