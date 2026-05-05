@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X, MapPin, Image, UserPlus, Star } from 'lucide-react';
+import { Check, X, MapPin, Image, UserPlus, Star, Heart } from 'lucide-react';
 
 export default function ValidationsTab() {
   const [actions, setActions] = useState([]);
@@ -13,7 +13,8 @@ export default function ValidationsTab() {
     try {
       const res = await fetch('/api/actions/pending', { credentials: 'include' });
       const data = await res.json();
-      setActions(data);
+      if (!res.ok) throw new Error(data.error || 'Falha ao buscar');
+      setActions(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to fetch actions', err);
     } finally {
@@ -41,6 +42,7 @@ export default function ValidationsTab() {
       case 'referral': return <UserPlus className="w-5 h-5 text-green-400" />;
       case 'bonus_week': return <Star className="w-5 h-5 text-yellow-400" />;
       case 'graduation': return <Star className="w-5 h-5 text-yellow-500" />;
+      case 'donation': return <Heart className="w-5 h-5 text-red-500" />;
       default: return <Star className="w-5 h-5 text-slate-400" />;
     }
   };
@@ -54,6 +56,7 @@ export default function ValidationsTab() {
       case 'bonus_week': return 'Bônus Semanal';
       case 'challenge_completion': return 'Desafio';
       case 'graduation': return 'Graduação';
+      case 'donation': return 'Doação';
       default: return type;
     }
   };

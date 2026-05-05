@@ -25,26 +25,39 @@ export async function initSupabaseDb() {
       console.log('Default Admin created in Supabase.');
     }
 
-    // Create Default Receptionist (Recepcao / Teambang744)
-    const { data: recepExists } = await supabase
-      .from('users')
-      .select('id')
-      .eq('role', 'receptionist')
-      .limit(1)
-      .maybeSingle();
+    // Initialize specific receptionists
+    const passwordHash = bcrypt.hashSync('Teambang', 10);
+    const receptionists = [
+      { name: 'Recepção Forte Muaythai', login: 'recepcao_forte_muaythai', role: 'receptionist', nickname: 'Forte Muaythai', email: 'recepcao@forte_muaythai.com', unit: 'Forte Muaythai' },
+      { name: 'Recepção Forte Fitness', login: 'recepcao_forte_fitness', role: 'receptionist', nickname: 'Forte Fitness', email: 'recepcao@forte_fitness.com', unit: 'Forte Fitness' },
+      { name: 'Recepção Forte Fight', login: 'recepcao_forte_fight', role: 'receptionist', nickname: 'Forte Fight', email: 'recepcao@forte_fight.com', unit: 'Forte Fight' },
+      { name: 'Recepção Anita', login: 'recepcao_anita', role: 'receptionist', nickname: 'Anita', email: 'recepcao@anita.com', unit: 'Anita' },
+      { name: 'Recepção Moinhos', login: 'recepcao_moinhos', role: 'receptionist', nickname: 'Moinhos', email: 'recepcao@moinhos.com', unit: 'Moinhos' },
+      { name: 'Recepção Protásio', login: 'recepcao_protasio', role: 'receptionist', nickname: 'Protásio', email: 'recepcao@protasio.com', unit: 'Protásio' },
+      { name: 'Recepção Zona Sul', login: 'recepcao_zona_sul', role: 'receptionist', nickname: 'Zona Sul', email: 'recepcao@zona_sul.com', unit: 'Zona Sul' },
+      { name: 'Recepção Tramandai', login: 'recepcao_tramandai', role: 'receptionist', nickname: 'Tramandai', email: 'recepcao@tramandai.com', unit: 'Tramandai' }
+    ];
 
-    if (!recepExists) {
-      const hashedPassword = bcrypt.hashSync('Teambang744', 10);
-      await supabase.from('users').insert({
-        name: 'Recepção',
-        login: 'Recepcao',
-        password: hashedPassword,
-        role: 'receptionist',
-        email: 'recepcao@bang.com',
-        nickname: 'Recepção',
-        is_active: true
-      });
-      console.log('Default Receptionist created in Supabase.');
+    for (const rec of receptionists) {
+      const { data: recExists } = await supabase
+        .from('users')
+        .select('id')
+        .eq('login', rec.login)
+        .maybeSingle();
+
+      if (!recExists) {
+        await supabase.from('users').insert({
+          name: rec.name,
+          login: rec.login,
+          password: passwordHash,
+          role: rec.role,
+          email: rec.email,
+          nickname: rec.nickname,
+          unit: rec.unit,
+          is_active: true
+        });
+        console.log(`Created Receptionist: ${rec.name}`);
+      }
     }
     
     // Create a default student for testing

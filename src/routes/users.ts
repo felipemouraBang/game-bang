@@ -3,14 +3,26 @@ import bcrypt from 'bcryptjs';
 import { supabase } from '../db/supabase.js';
 import { authenticate, authorize, logAction } from '../middleware/auth.js';
 import { checkAndSendDailyMotivation } from '../utils/dailyMotivation.js';
+import { getReceptionistUnits } from '../utils/units.js';
 
 const router = express.Router();
 
 // Get all users (Admin/Receptionist)
 router.get('/', authenticate, authorize(['admin', 'receptionist']), async (req, res) => {
-  const { data: users, error } = await supabase
+  const { data: currentUser } = await supabase.from('users').select('role, nickname').eq('id', req.user.id).single();
+
+  let query = supabase
     .from('users')
     .select('id, name, login, role, email, photo, nickname, score_monthly, score_annual, is_active, unit');
+
+  if (currentUser?.role === 'receptionist') {
+    const units = getReceptionistUnits(currentUser.nickname);
+    if (units.length > 0) {
+      query = query.in('unit', units);
+    }
+  }
+
+  const { data: users, error } = await query;
   
   if (error) return res.status(500).json({ error: error.message });
   res.json(users);

@@ -355,7 +355,8 @@ function UserPointsModal({ user, onClose }) {
       try {
         const res = await fetch(`/api/actions/user/${user.id}`, { credentials: 'include' });
         const data = await res.json();
-        setActions(data);
+        if (!res.ok) throw new Error(data.error || 'Falha ao buscar as ações do usuário');
+        setActions(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Failed to fetch user actions', err);
       } finally {
@@ -375,7 +376,8 @@ function UserPointsModal({ user, onClose }) {
     referral_deal: 'Matrícula de Indicação',
     challenge_completion: 'Desafio',
     bonus_week: 'Bônus da Semana',
-    graduation: 'Graduação'
+    graduation: 'Graduação',
+    donation: 'Doação'
   };
 
   const getStatusColor = (status) => {

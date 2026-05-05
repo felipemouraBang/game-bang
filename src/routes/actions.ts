@@ -1,6 +1,7 @@
 import express from 'express';
 import { supabase } from '../db/supabase.js';
 import { authenticate, authorize, logAction } from '../middleware/auth.js';
+import { getReceptionistUnits } from '../utils/units.js';
 
 const router = express.Router();
 
@@ -13,7 +14,8 @@ const POINTS_MAP = {
   referral: 10,
   referral_deal: 20,
   bonus_week: 5,
-  graduation: 10
+  graduation: 10,
+  donation: 10
 };
 
 // Submit Action (Student)
@@ -143,23 +145,37 @@ router.post('/qr-checkin', authenticate, async (req, res) => {
 
 // Get Pending Actions (Admin/Receptionist)
 router.get('/pending', authenticate, authorize(['admin', 'receptionist']), async (req, res) => {
+  const { data: currentUser } = await supabase.from('users').select('role, nickname').eq('id', req.user.id).single();
+
   const { data: actions, error } = await supabase
     .from('actions')
     .select(`
       *,
-      users:user_id (name, photo)
+      users:user_id (name, photo, unit)
     `)
     .eq('status', 'pending')
     .order('created_at', { ascending: false });
 
   if (error) return res.status(500).json({ error: error.message });
   
-  // Flatten the response to match the expected format
-  const formattedActions = actions.map(a => ({
+  if (!actions) return res.json([]);
+
+  // Flatten the response and filter by unit if receptionist
+  let formattedActions = actions.map(a => ({
     ...a,
     user_name: a.users.name,
-    user_photo: a.users.photo
+    user_photo: a.users.photo,
+    user_unit: a.users.unit
   }));
+
+  if (currentUser?.role === 'receptionist') {
+    const units = getReceptionistUnits(currentUser.nickname);
+    if (units.length > 0) {
+      formattedActions = formattedActions.filter(a => units.includes(a.user_unit) && a.type !== 'donation');
+    } else {
+      formattedActions = formattedActions.filter(a => a.type !== 'donation');
+    }
+  }
 
   res.json(formattedActions);
 });
@@ -167,6 +183,8 @@ router.get('/pending', authenticate, authorize(['admin', 'receptionist']), async
 // Validate Action (Admin/Receptionist)
 router.post('/:id/validate', authenticate, authorize(['admin', 'receptionist']), async (req, res) => {
   const actionId = req.params.id;
+  const { data: currentUser } = await supabase.from('users').select('role, nickname').eq('id', req.user.id).single();
+  
   const { data: action, error: actionFetchError } = await supabase
     .from('actions')
     .select('*')
@@ -175,6 +193,9 @@ router.post('/:id/validate', authenticate, authorize(['admin', 'receptionist']),
 
   if (actionFetchError || !action) return res.status(404).json({ error: 'Action not found' });
   if (action.status !== 'pending') return res.status(400).json({ error: 'Action already processed' });
+  if (action.type === 'donation' && currentUser?.role === 'receptionist') {
+    return res.status(403).json({ error: 'Receptionists cannot validate donations' });
+  }
 
   try {
     // Special handling for challenge completion
@@ -271,7 +292,7 @@ router.get('/user/:id', authenticate, async (req, res) => {
     .order('created_at', { ascending: false });
 
   if (error) return res.status(500).json({ error: error.message });
-  res.json(actions);
+  res.json(actions || []);
 });
 
 // Get User Actions (Self)
@@ -283,7 +304,7 @@ router.get('/me', authenticate, async (req, res) => {
     .order('created_at', { ascending: false });
 
   if (error) return res.status(500).json({ error: error.message });
-  res.json(actions);
+  res.json(actions || []);
 });
 
 export default router;

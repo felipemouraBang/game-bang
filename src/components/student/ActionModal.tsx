@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Camera, UserPlus, X, Loader2, Award } from 'lucide-react';
+import { MapPin, Camera, UserPlus, X, Loader2, Award, Heart } from 'lucide-react';
 
 export default function ActionModal({ type, onClose }) {
   const [modality, setModality] = useState('checkin_muay_thai');
@@ -78,6 +78,9 @@ export default function ActionModal({ type, onClose }) {
           : type === 'graduation'
           ? `Graduação: ${friendName} (${friendPhone})`
           : `Amigo Fechou Plano: ${friendName} (${friendPhone})`;
+      } else if (type === 'donation') {
+        proof = 'Comprovante via WhatsApp';
+        finalDetails = 'Doação para o projeto - Comprovante via WhatsApp';
       }
 
       const res = await fetch('/api/actions', {
@@ -108,17 +111,19 @@ export default function ActionModal({ type, onClose }) {
       case 'referral': return 'Indicar Amigo';
       case 'referral_deal': return 'Amigo Fechou Plano';
       case 'graduation': return 'Graduação';
+      case 'donation': return 'Doação';
       default: return 'Ação';
     }
   };
 
   const getIcon = () => {
     switch (type) {
-      case 'checkin': return <MapPin className="w-8 h-8 text-blue-500 mb-4" />;
-      case 'post': return <Camera className="w-8 h-8 text-purple-500 mb-4" />;
-      case 'referral': return <UserPlus className="w-8 h-8 text-green-500 mb-4" />;
-      case 'referral_deal': return <UserPlus className="w-8 h-8 text-emerald-500 mb-4" />;
-      case 'graduation': return <Award className="w-8 h-8 text-yellow-500 mb-4" />;
+      case 'checkin': return <MapPin className="w-8 h-8 text-blue-500 mb-4 mx-auto" />;
+      case 'post': return <Camera className="w-8 h-8 text-purple-500 mb-4 mx-auto" />;
+      case 'referral': return <UserPlus className="w-8 h-8 text-green-500 mb-4 mx-auto" />;
+      case 'referral_deal': return <UserPlus className="w-8 h-8 text-emerald-500 mb-4 mx-auto" />;
+      case 'graduation': return <Award className="w-8 h-8 text-yellow-500 mb-4 mx-auto" />;
+      case 'donation': return <Heart className="w-8 h-8 text-red-500 mb-4 mx-auto" />;
       default: return null;
     }
   };
@@ -206,6 +211,36 @@ export default function ActionModal({ type, onClose }) {
                 </div>
               )}
 
+              {type === 'donation' && (
+                <div className="space-y-4">
+                  <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700 max-h-48 overflow-y-auto custom-scrollbar">
+                    <p className="text-sm text-slate-300 mb-3 text-justify">
+                      Uma iniciativa que nasceu com o propósito de transformar vidas através do Muaythai, oferecendo aulas para jovens e adolescentes, além de abrir portas para oportunidades reais de trabalho dentro das nossas academias e também na carreira como atletas.
+                    </p>
+                    <p className="text-sm text-slate-300 mb-3 text-justify">
+                      Hoje, já temos dois jovens trabalhando conosco e competindo em campeonatos, mostrando que estamos no caminho certo.
+                    </p>
+                    <p className="text-sm text-slate-300 mb-3 text-justify">
+                      Começamos na unidade @teambangzonaleste e, com muito orgulho, expandimos também para nossa unidade do Morro Santana, ampliando ainda mais o impacto do projeto.
+                    </p>
+                    <p className="text-sm font-bold text-orange-400 mb-3 text-justify">
+                      Sua doação ajudará na compra de materiais de treino, inscrição em campeonatos e nas graduações dos jovens!
+                    </p>
+                    <p className="text-sm text-white font-semibold text-center">
+                      Se você quer fazer parte dessa transformação, faça sua doação!
+                    </p>
+                  </div>
+                  <div className="text-center bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                    <p className="text-sm text-green-400 font-bold mb-1">
+                      Valor mínimo: R$ 10
+                    </p>
+                    <p className="text-xs text-red-400 font-bold">
+                      Para sua doação ser validada, envie o comprovante para o WhatsApp da academia.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {error && (
                 <div className="text-red-400 text-sm bg-red-500/10 p-2 rounded">
                   {error}
@@ -221,6 +256,7 @@ export default function ActionModal({ type, onClose }) {
                   type === 'post' ? 'bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-500/20' :
                   type === 'referral_deal' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20' :
                   type === 'graduation' ? 'bg-yellow-600 hover:bg-yellow-700 shadow-lg shadow-yellow-500/20' :
+                  type === 'donation' ? 'bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/20' :
                   'bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/20'
                 }`}
               >
