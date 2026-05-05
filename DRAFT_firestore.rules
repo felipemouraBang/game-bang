@@ -1,0 +1,104 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() { return request.auth != null; }
+    
+    // Check if user is an admin by querying the users collection
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isReceptionist() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'receptionist';
+    }
+
+    function isStaff() { return isAdmin() || isReceptionist(); }
+
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['name', 'email', 'role']) &&
+             data.name is string && data.name.size() <= 200 &&
+             data.email is string && data.email.size() <= 200 &&
+             data.role in ['admin', 'receptionist', 'student'];
+    }
+
+    function isValidAction(data) {
+      return data.keys().hasAll(['user_id', 'type', 'status']) &&
+             data.user_id is string && data.user_id.size() <= 128 &&
+             data.type is string && data.type.size() <= 50 &&
+             data.status in ['pending', 'approved', 'rejected'];
+    }
+
+    // users collection
+    match /users/{userId} {
+      // Users can read all users (or maybe just themselves and staff can read all?)
+      // Let's assume everyone can see the leaderboard so reading basic profiles is allowed.
+      allow read: if isSignedIn() && isValidId(userId);
+      
+      // Creating a user is done through the Admin SDK normally, but if from client:
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming());
+
+      // Update allowed for the user themselves (only certain fields) or by admin
+      allow update: if isSignedIn() && isValidId(userId) && (
+        isAdmin() || 
+        (request.auth.uid == userId && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'photo', 'nickname', 'unit']))
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // actions collection
+    match /actions/{actionId} {
+      allow read: if isSignedIn() && isValidId(actionId);
+      
+      allow create: if isSignedIn() && isValidAction(incoming()) && incoming().user_id == request.auth.uid;
+
+      allow update: if isSignedIn() && isValidId(actionId) && (
+        isStaff() && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'points', 'validated_by', 'validated_at'])
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // challenges collection
+    match /challenges/{challengeId} {
+      allow read: if isSignedIn() && isValidId(challengeId);
+      allow write: if isAdmin();
+    }
+
+    // notifications collection
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && isValidId(notificationId) && existing().user_id == request.auth.uid;
+      allow create: if isStaff();
+      allow update: if isSignedIn() && isValidId(notificationId) && request.auth.uid == existing().user_id &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+      allow delete: if isAdmin() || (isSignedIn() && existing().user_id == request.auth.uid);
+    }
+
+    // logs collection
+    match /logs/{logId} {
+      allow read: if isStaff();
+      allow write: if isStaff(); // Usually logs are created by admin or system
+    }
+
+    // hall_of_fame collection
+    match /hall_of_fame/{hallOfFameId} {
+      allow read: if isSignedIn() && isValidId(hallOfFameId);
+      allow write: if isAdmin();
+    }
+  }
+}

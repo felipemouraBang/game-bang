@@ -10,6 +10,7 @@ export default function UsersTab() {
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [pointsModalUser, setPointsModalUser] = useState(null);
   const [error, setError] = useState(null);
   const { user: currentUser } = useAuth();
 
@@ -117,7 +118,13 @@ export default function UsersTab() {
                   {user.unit || '-'}
                 </td>
                 <td className="px-6 py-4">
-                  <span className="text-orange-400 font-bold">{user.score_monthly}</span> / <span className="text-slate-400">{user.score_annual}</span>
+                  <button 
+                    onClick={() => setPointsModalUser(user)}
+                    className="hover:underline focus:outline-none group"
+                    title="Ver histórico de pontos"
+                  >
+                    <span className="text-orange-400 font-bold group-hover:text-orange-300">{user.score_monthly}</span> <span className="text-slate-500">/</span> <span className="text-slate-400 group-hover:text-slate-300">{user.score_annual}</span>
+                  </button>
                 </td>
                 <td className="px-6 py-4 text-right space-x-2">
                   {currentUser?.role === 'admin' ? (
@@ -172,6 +179,13 @@ export default function UsersTab() {
           user={editingUser} 
           onClose={() => setShowModal(false)} 
           onSave={() => { setShowModal(false); fetchUsers(); }} 
+        />
+      )}
+
+      {pointsModalUser && (
+        <UserPointsModal 
+          user={pointsModalUser} 
+          onClose={() => setPointsModalUser(null)} 
         />
       )}
     </div>
@@ -327,6 +341,106 @@ function UserModal({ user, onClose, onSave }) {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+function UserPointsModal({ user, onClose }) {
+  const [actions, setActions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchActions = async () => {
+      try {
+        const res = await fetch(`/api/actions/user/${user.id}`, { credentials: 'include' });
+        const data = await res.json();
+        setActions(data);
+      } catch (err) {
+        console.error('Failed to fetch user actions', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchActions();
+  }, [user.id]);
+
+  const typeLabels = {
+    checkin: 'Check-in Geral',
+    checkin_muay_thai: 'Check-in Muay Thai',
+    checkin_fitness: 'Check-in Fitness',
+    checkin_fight: 'Check-in Fight',
+    post: 'Postagem',
+    referral: 'Indicação',
+    referral_deal: 'Matrícula de Indicação',
+    challenge_completion: 'Desafio',
+    bonus_week: 'Bônus da Semana',
+    graduation: 'Graduação'
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'approved': return 'bg-green-500/20 text-green-400';
+      case 'rejected': return 'bg-red-500/20 text-red-400';
+      default: return 'bg-yellow-500/20 text-yellow-400';
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'approved': return 'Aprovado';
+      case 'rejected': return 'Rejeitado';
+      default: return 'Pendente';
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-800 rounded-xl p-6 w-full max-w-2xl border border-slate-700 shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="flex justify-between items-center mb-6 shrink-0">
+          <h3 className="text-xl font-bold text-white">Histórico de Pontos - {user.name}</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors text-2xl leading-none">&times;</button>
+        </div>
+        
+        <div className="overflow-y-auto flex-1 pr-2 custom-scrollbar">
+          {loading ? (
+            <div className="text-center py-8 text-slate-400">Carregando histórico...</div>
+          ) : actions.length === 0 ? (
+            <div className="text-center py-8 text-slate-500">Nenhum ponto registrado para este usuário.</div>
+          ) : (
+            <div className="space-y-3">
+              {actions.map(action => (
+                <div key={action.id} className="bg-slate-900 border border-slate-700 rounded-lg p-4 flex justify-between items-center">
+                  <div>
+                    <div className="font-semibold text-white mb-1">
+                      {typeLabels[action.type] || action.type}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      {new Date(action.created_at).toLocaleString('pt-BR')}
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${getStatusColor(action.status)}`}>
+                      {getStatusText(action.status)}
+                    </span>
+                    <span className="text-lg font-bold text-orange-400 w-12 text-right">
+                      +{action.points}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        
+        <div className="mt-6 pt-4 border-t border-slate-700 flex justify-end shrink-0">
+          <button 
+            onClick={onClose}
+            className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded transition-colors"
+          >
+            Fechar
+          </button>
+        </div>
       </div>
     </div>
   );

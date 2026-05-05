@@ -1,0 +1,119 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile containing points and role",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "photo": { "type": "string" },
+        "nickname": { "type": "string" },
+        "unit": { "type": "string" },
+        "score_monthly": { "type": "number" },
+        "score_annual": { "type": "number" },
+        "is_active": { "type": "boolean" },
+        "role": { "type": "string", "enum": ["admin", "receptionist", "student"] },
+        "created_at": { "type": "string" }
+      },
+      "required": ["name", "email", "role"]
+    },
+    "Challenge": {
+      "title": "Challenge",
+      "description": "Challenge for users",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "start_date": { "type": "string" },
+        "end_date": { "type": "string" },
+        "points": { "type": "number" },
+        "created_by": { "type": "string" },
+        "winner_id": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["title", "created_by"]
+    },
+    "Action": {
+      "title": "Action",
+      "description": "Actions like check-ins and challenge completions",
+      "type": "object",
+      "properties": {
+        "user_id": { "type": "string" },
+        "type": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "points": { "type": "number" },
+        "proof": { "type": "object" },
+        "validated_by": { "type": "string" },
+        "validated_at": { "type": "string" },
+        "challenge_id": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["user_id", "type", "status"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Notifications for users",
+      "type": "object",
+      "properties": {
+        "user_id": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string" },
+        "read": { "type": "boolean" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["user_id", "message", "read"]
+    },
+    "Log": {
+      "title": "Log",
+      "description": "System logs for actions taken",
+      "type": "object",
+      "properties": {
+        "user_id": { "type": "string" },
+        "action": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["action", "timestamp"]
+    },
+    "HallOfFame": {
+      "title": "HallOfFame",
+      "description": "Hall of fame records",
+      "type": "object",
+      "properties": {
+        "user_id": { "type": "string" },
+        "period_type": { "type": "string", "enum": ["month", "year"] },
+        "period_identifier": { "type": "string" },
+        "score": { "type": "number" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["user_id", "period_type", "period_identifier", "score"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles"
+    },
+    "/challenges/{challengeId}": {
+      "schema": { "$ref": "#/entities/Challenge" },
+      "description": "Global challenges"
+    },
+    "/actions/{actionId}": {
+      "schema": { "$ref": "#/entities/Action" },
+      "description": "Points validation actions"
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/Notification" },
+      "description": "Alerts for users"
+    },
+    "/logs/{logId}": {
+      "schema": { "$ref": "#/entities/Log" },
+      "description": "Audit trails"
+    },
+    "/hall_of_fame/{hallOfFameId}": {
+      "schema": { "$ref": "#/entities/HallOfFame" },
+      "description": "Records for hall of fame"
+    }
+  }
+}

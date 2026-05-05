@@ -257,6 +257,23 @@ router.post('/:id/reject', authenticate, authorize(['admin', 'receptionist']), a
   res.json({ message: 'Action rejected' });
 });
 
+// Get User Actions (Admin/Receptionist/Self)
+router.get('/user/:id', authenticate, async (req, res) => {
+  const targetId = req.params.id;
+  if (req.user.role !== 'admin' && req.user.role !== 'receptionist' && req.user.id !== targetId) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const { data: actions, error } = await supabase
+    .from('actions')
+    .select('*')
+    .eq('user_id', targetId)
+    .order('created_at', { ascending: false });
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(actions);
+});
+
 // Get User Actions (Self)
 router.get('/me', authenticate, async (req, res) => {
   const { data: actions, error } = await supabase
