@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X, MapPin, Image, UserPlus, Star, Heart } from 'lucide-react';
+import { Check, X, MapPin, Image, UserPlus, Star, Heart, Target } from 'lucide-react';
 
 export default function ValidationsTab() {
   const [actions, setActions] = useState([]);
@@ -42,6 +42,7 @@ export default function ValidationsTab() {
       case 'referral': return <UserPlus className="w-5 h-5 text-green-400" />;
       case 'bonus_week': return <Star className="w-5 h-5 text-yellow-400" />;
       case 'graduation': return <Star className="w-5 h-5 text-yellow-500" />;
+      case 'challenge_bang': return <Target className="w-5 h-5 text-orange-500" />;
       case 'donation': return <Heart className="w-5 h-5 text-red-500" />;
       default: return <Star className="w-5 h-5 text-slate-400" />;
     }
@@ -56,6 +57,7 @@ export default function ValidationsTab() {
       case 'bonus_week': return 'Bônus Semanal';
       case 'challenge_completion': return 'Desafio';
       case 'graduation': return 'Graduação';
+      case 'challenge_bang': return 'Desafio Bang';
       case 'donation': return 'Doação';
       default: return type;
     }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Camera, UserPlus, Trophy, TrendingUp, Award, Bell, QrCode, Handshake, Heart } from 'lucide-react';
+import { MapPin, Camera, UserPlus, Trophy, TrendingUp, Award, Bell, QrCode, Handshake, Heart, Target } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ActionModal from '../components/student/ActionModal';
 import QRScannerModal from '../components/student/QRScannerModal';
@@ -149,6 +149,17 @@ export default function StudentDashboard() {
             <Award className="w-6 h-6 text-yellow-400" />
           </div>
           <span className="text-xs font-medium text-slate-300">Graduação</span>
+          <span className="text-[10px] text-orange-500 font-bold mt-1">+10 pts</span>
+        </button>
+
+        <button 
+          onClick={() => handleActionClick('challenge_bang')}
+          className="bg-slate-800 hover:bg-slate-700 p-4 rounded-xl border border-slate-700 flex flex-col items-center justify-center transition-all active:scale-95 group"
+        >
+          <div className="bg-orange-500/20 p-3 rounded-full mb-2 group-hover:bg-orange-500/30 transition-colors">
+            <Target className="w-6 h-6 text-orange-500" />
+          </div>
+          <span className="text-xs font-medium text-slate-300">Desafio Bang</span>
           <span className="text-[10px] text-orange-500 font-bold mt-1">+10 pts</span>
         </button>
       </div>

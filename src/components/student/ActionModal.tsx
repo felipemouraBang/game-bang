@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Camera, UserPlus, X, Loader2, Award, Heart } from 'lucide-react';
+import { MapPin, Camera, UserPlus, X, Loader2, Award, Heart, Target } from 'lucide-react';
 
 export default function ActionModal({ type, onClose }) {
   const [modality, setModality] = useState('checkin_muay_thai');
@@ -65,7 +65,7 @@ export default function ActionModal({ type, onClose }) {
           lng: position.coords.longitude,
           accuracy: position.coords.accuracy
         });
-      } else if (type === 'referral' || type === 'referral_deal' || type === 'graduation') {
+      } else if (type === 'referral' || type === 'referral_deal' || type === 'graduation' || type === 'challenge_bang') {
         const friendName = e.target.friendName.value;
         const friendPhone = e.target.friendPhone.value;
         
@@ -77,6 +77,8 @@ export default function ActionModal({ type, onClose }) {
           ? `Indicação: ${friendName} (${friendPhone})`
           : type === 'graduation'
           ? `Graduação: ${friendName} (${friendPhone})`
+          : type === 'challenge_bang'
+          ? `Desafio Bang: ${friendName} (${friendPhone})`
           : `Amigo Fechou Plano: ${friendName} (${friendPhone})`;
       } else if (type === 'donation') {
         proof = 'Comprovante via WhatsApp';
@@ -111,6 +113,7 @@ export default function ActionModal({ type, onClose }) {
       case 'referral': return 'Indicar Amigo';
       case 'referral_deal': return 'Amigo Fechou Plano';
       case 'graduation': return 'Graduação';
+      case 'challenge_bang': return 'Desafio Bang';
       case 'donation': return 'Doação';
       default: return 'Ação';
     }
@@ -123,6 +126,7 @@ export default function ActionModal({ type, onClose }) {
       case 'referral': return <UserPlus className="w-8 h-8 text-green-500 mb-4 mx-auto" />;
       case 'referral_deal': return <UserPlus className="w-8 h-8 text-emerald-500 mb-4 mx-auto" />;
       case 'graduation': return <Award className="w-8 h-8 text-yellow-500 mb-4 mx-auto" />;
+      case 'challenge_bang': return <Target className="w-8 h-8 text-orange-500 mb-4 mx-auto" />;
       case 'donation': return <Heart className="w-8 h-8 text-red-500 mb-4 mx-auto" />;
       default: return null;
     }
@@ -182,11 +186,11 @@ export default function ActionModal({ type, onClose }) {
                 </div>
               )}
 
-              {(type === 'referral' || type === 'referral_deal' || type === 'graduation') && (
+              {(type === 'referral' || type === 'referral_deal' || type === 'graduation' || type === 'challenge_bang') && (
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm text-slate-400 mb-2 text-left">
-                      {type === 'graduation' ? 'Seu Nome Completo' : 'Nome Completo do Amigo'}
+                      {(type === 'graduation' || type === 'challenge_bang') ? 'Seu Nome Completo' : 'Nome Completo do Amigo'}
                     </label>
                     <input 
                       type="text"
@@ -198,7 +202,7 @@ export default function ActionModal({ type, onClose }) {
                   </div>
                   <div>
                     <label className="block text-sm text-slate-400 mb-2 text-left">
-                      {type === 'graduation' ? 'Seu WhatsApp' : 'WhatsApp do Amigo'}
+                      {(type === 'graduation' || type === 'challenge_bang') ? 'Seu WhatsApp' : 'WhatsApp do Amigo'}
                     </label>
                     <input 
                       type="text"
@@ -260,6 +264,7 @@ export default function ActionModal({ type, onClose }) {
                   type === 'post' ? 'bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-500/20' :
                   type === 'referral_deal' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20' :
                   type === 'graduation' ? 'bg-yellow-600 hover:bg-yellow-700 shadow-lg shadow-yellow-500/20' :
+                  type === 'challenge_bang' ? 'bg-orange-600 hover:bg-orange-700 shadow-lg shadow-orange-500/20' :
                   type === 'donation' ? 'bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/20' :
                   'bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/20'
                 }`}

@@ -377,6 +377,7 @@ function UserPointsModal({ user, onClose }) {
     challenge_completion: 'Desafio',
     bonus_week: 'Bônus da Semana',
     graduation: 'Graduação',
+    challenge_bang: 'Desafio Bang',
     donation: 'Doação'
   };
 
