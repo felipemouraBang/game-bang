@@ -172,10 +172,11 @@ router.get('/pending', authenticate, authorize(['admin', 'receptionist']), async
 
   if (currentUser?.role === 'receptionist') {
     const units = getReceptionistUnits(currentUser.nickname);
+    const restrictedTypes = ['donation', 'referral', 'referral_deal', 'graduation', 'challenge_bang'];
     if (units.length > 0) {
-      formattedActions = formattedActions.filter(a => units.includes(a.user_unit) && a.type !== 'donation');
+      formattedActions = formattedActions.filter(a => units.includes(a.user_unit) && !restrictedTypes.includes(a.type));
     } else {
-      formattedActions = formattedActions.filter(a => a.type !== 'donation');
+      formattedActions = formattedActions.filter(a => !restrictedTypes.includes(a.type));
     }
   }
 
@@ -195,8 +196,9 @@ router.post('/:id/validate', authenticate, authorize(['admin', 'receptionist']),
 
   if (actionFetchError || !action) return res.status(404).json({ error: 'Action not found' });
   if (action.status !== 'pending') return res.status(400).json({ error: 'Action already processed' });
-  if (action.type === 'donation' && currentUser?.role === 'receptionist') {
-    return res.status(403).json({ error: 'Receptionists cannot validate donations' });
+  const restrictedTypes = ['donation', 'referral', 'referral_deal', 'graduation', 'challenge_bang'];
+  if (restrictedTypes.includes(action.type) && currentUser?.role === 'receptionist') {
+    return res.status(403).json({ error: 'Receptionists cannot validate this type of action' });
   }
 
   try {
@@ -263,7 +265,16 @@ router.post('/:id/validate', authenticate, authorize(['admin', 'receptionist']),
 // Reject Action (Admin/Receptionist)
 router.post('/:id/reject', authenticate, authorize(['admin', 'receptionist']), async (req, res) => {
   const actionId = req.params.id;
-  
+  const { data: currentUser } = await supabase.from('users').select('role').eq('id', req.user.id).single();
+
+  const { data: action } = await supabase.from('actions').select('type').eq('id', actionId).single();
+  if (!action) return res.status(404).json({ error: 'Action not found' });
+
+  const restrictedTypes = ['donation', 'referral', 'referral_deal', 'graduation', 'challenge_bang'];
+  if (restrictedTypes.includes(action.type) && currentUser?.role === 'receptionist') {
+    return res.status(403).json({ error: 'Receptionists cannot reject this type of action' });
+  }
+
   const { error } = await supabase
     .from('actions')
     .update({
