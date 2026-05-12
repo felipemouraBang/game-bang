@@ -92,8 +92,15 @@ export default function ChallengeCountdown({ externalRefreshKey = 0 }: { externa
         setChallenge(prev => prev ? { ...prev, user_status: 'pending' } : null);
         setShowModal(false);
       } else {
-        const data = await res.json();
-        alert(data.error || 'Erro ao enviar.');
+        let errorMsg = 'Erro ao enviar.';
+        try {
+          const text = await res.text();
+          const data = JSON.parse(text);
+          errorMsg = data.error || errorMsg;
+        } catch (e) {
+          console.error("Non-JSON error from server");
+        }
+        alert(errorMsg);
       }
     } catch (err) {
       alert('Erro de conexão.');
@@ -126,8 +133,15 @@ export default function ChallengeCountdown({ externalRefreshKey = 0 }: { externa
         setRefreshKey(prev => prev + 1);
         setMessage({ text: 'Desafio encerrado com sucesso!', type: 'success' });
       } else {
-        const data = await res.json();
-        setMessage({ text: data.error || 'Erro ao encerrar desafio.', type: 'error' });
+        let errorMsg = 'Erro ao encerrar desafio.';
+        try {
+          const text = await res.text();
+          const data = JSON.parse(text);
+          errorMsg = data.error || errorMsg;
+        } catch (e) {
+          console.error("Non-JSON error from server");
+        }
+        setMessage({ text: errorMsg, type: 'error' });
       }
     } catch (err) {
       console.error('Error ending challenge:', err);

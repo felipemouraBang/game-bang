@@ -88,15 +88,23 @@ export default function ActionModal({ type, onClose }) {
       const res = await fetch('/api/actions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: finalType, proof, details: finalDetails })
+        body: JSON.stringify({ type: finalType, proof, details: finalDetails }),
+        credentials: 'include'
       });
 
       if (res.ok) {
         setSuccess(true);
         setTimeout(onClose, 2000);
       } else {
-        const data = await res.json();
-        setError(data.error || 'Erro ao enviar ação');
+        let errorMsg = 'Erro ao enviar ação';
+        try {
+          const text = await res.text();
+          const data = JSON.parse(text);
+          errorMsg = data.error || errorMsg;
+        } catch (e) {
+          console.error("Non-JSON error response from server");
+        }
+        setError(errorMsg);
       }
     } catch (err) {
       console.error(err);

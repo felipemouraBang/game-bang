@@ -11,7 +11,7 @@ export default function EvolutionChart({ userId }) {
 
   const fetchData = async () => {
     try {
-      const res = await fetch(`/api/stats/evolution?period=${period}`);
+      const res = await fetch(`/api/stats/evolution?period=${period}`, { credentials: 'include' });
       const json = await res.json();
       setData(json);
     } catch (err) {

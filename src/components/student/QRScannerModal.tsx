@@ -48,11 +48,11 @@ export default function QRScannerModal({ onClose }) {
         }
         
         setCameraLoading(false);
-      } catch (err) {
-        console.error("Error starting QR scanner:", err);
-        setCameraLoading(false);
-        setError('Não foi possível acessar a câmera. Verifique as permissões ou se o dispositivo possui câmera.');
-      }
+        } catch (err: any) {
+          console.warn("No camera found or permission denied:", err?.message || err);
+          setCameraLoading(false);
+          setError('Não foi possível acessar a câmera. Verifique as permissões do navegador ou se o dispositivo possui câmera.');
+        }
     };
 
     startScanner();
@@ -82,15 +82,23 @@ export default function QRScannerModal({ onClose }) {
       const res = await fetch('/api/actions/qr-checkin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: modalityRef.current })
+        body: JSON.stringify({ type: modalityRef.current }),
+        credentials: 'include'
       });
 
       if (res.ok) {
         setSuccess(true);
         setTimeout(onClose, 2000);
       } else {
-        const data = await res.json();
-        setError(data.error || 'Erro ao realizar check-in.');
+        let errorMsg = 'Erro ao realizar check-in.';
+        try {
+          const text = await res.text();
+          const data = JSON.parse(text);
+          errorMsg = data.error || errorMsg;
+        } catch (e) {
+          console.error("Non-JSON error response from server");
+        }
+        setError(errorMsg);
       }
     } catch (err) {
       setError('Erro de conexão.');
