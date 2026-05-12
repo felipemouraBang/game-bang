@@ -413,14 +413,41 @@ function UserPointsModal({ user, onClose }) {
           ) : (
             <div className="space-y-3">
               {actions.map(action => (
-                <div key={action.id} className="bg-slate-900 border border-slate-700 rounded-lg p-4 flex justify-between items-center">
-                  <div>
+                <div key={action.id} className="bg-slate-900 border border-slate-700 rounded-lg p-4 flex justify-between items-center flex-wrap gap-2">
+                  <div className="w-full sm:w-auto">
                     <div className="font-semibold text-white mb-1">
                       {typeLabels[action.type] || action.type}
                     </div>
                     <div className="text-xs text-slate-500">
                       {new Date(action.created_at).toLocaleString('pt-BR')}
                     </div>
+                    {['referral', 'referral_deal', 'graduation', 'challenge_bang'].includes(action.type) && (
+                      <div className="mt-2 text-xs font-medium text-orange-300/80 bg-orange-500/10 p-2 rounded border border-orange-500/20 space-y-1">
+                        {action.details && <p><span className="text-orange-400/80">Detalhes:</span> {action.details}</p>}
+                        {(() => {
+                          try {
+                            let parsed = action.proof;
+                            if (typeof parsed === 'string') {
+                              try { parsed = JSON.parse(parsed); } catch (e) {}
+                            }
+                            if (typeof parsed === 'string') {
+                              try { parsed = JSON.parse(parsed); } catch (e) {}
+                            }
+                            if (parsed && typeof parsed === 'object') {
+                              return (
+                                <>
+                                  {(parsed.name || parsed.fullName) && <p><span className="text-orange-400/80">Nome:</span> {parsed.name || parsed.fullName}</p>}
+                                  {(parsed.phone || parsed.whatsapp) && <p><span className="text-orange-400/80">WhatsApp:</span> {parsed.phone || parsed.whatsapp}</p>}
+                                </>
+                              );
+                            }
+                          } catch (e) {
+                            // Ignora se não for JSON válido
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center space-x-4">
                     <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${getStatusColor(action.status)}`}>

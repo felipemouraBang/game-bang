@@ -8,6 +8,7 @@ export const getReceptionistUnits = (nickname: string): string[] => {
     case 'Protásio': return ['Protásio Fitness', 'Protásio Fight', 'Protásio Muay'];
     case 'Zona Sul': return ['ZS Muay', 'ZS Fitness'];
     case 'Tramandai': return ['Tramandai Muay'];
+    case 'Canoas': return ['Canoas Muaythai', 'Canoas Fitness'];
     default: return [];
   }
 };

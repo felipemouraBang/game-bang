@@ -23,7 +23,9 @@ export const UNITS = [
   'Cristiano Fitness',
   'ZS Muay',
   'ZS Fitness',
-  'Tramandai Muay'
+  'Tramandai Muay',
+  'Canoas Muaythai',
+  'Canoas Fitness'
 ];
 
 export default function Register() {

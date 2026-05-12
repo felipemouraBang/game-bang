@@ -74,7 +74,8 @@ router.post('/', authenticate, async (req, res) => {
       type,
       status: 'pending',
       points: POINTS_MAP[type],
-      proof: JSON.stringify(proof)
+      proof: typeof proof === 'string' ? proof : JSON.stringify(proof),
+      details: details || null
     })
     .select()
     .single();

@@ -65,29 +65,43 @@ export default function ValidationsTab() {
 
   const renderProof = (action) => {
     if (!action.proof) return null;
+    let parsed = null;
     try {
-      const proof = JSON.parse(action.proof);
-      if (action.type === 'challenge_completion') {
-        return (
-          <div className="mt-2 text-xs text-slate-400 bg-slate-800 p-3 rounded-lg border border-slate-700 space-y-1">
-            <p><span className="text-slate-500">Nome:</span> <span className="text-white">{proof.fullName}</span></p>
-            <p><span className="text-slate-500">WhatsApp:</span> <span className="text-white">{proof.whatsapp}</span></p>
-            <p><span className="text-slate-500">Unidade:</span> <span className="text-white">{proof.unit}</span></p>
-          </div>
-        );
+      parsed = JSON.parse(action.proof);
+      if (typeof parsed === 'string') {
+        parsed = JSON.parse(parsed);
       }
-      return (
-        <div className="mt-2 text-xs text-slate-400 bg-slate-800 p-2 rounded truncate">
-          Prova: {action.proof}
-        </div>
-      );
     } catch (e) {
+      // Not JSON
+    }
+
+    if (parsed && action.type === 'challenge_completion') {
       return (
-        <div className="mt-2 text-xs text-slate-400 bg-slate-800 p-2 rounded truncate">
-          Prova: {action.proof}
+        <div className="mt-2 text-xs text-slate-400 bg-slate-800 p-3 rounded-lg border border-slate-700 space-y-1">
+          <p><span className="text-slate-500">Nome:</span> <span className="text-white">{parsed.fullName}</span></p>
+          <p><span className="text-slate-500">WhatsApp:</span> <span className="text-white">{parsed.whatsapp}</span></p>
+          <p><span className="text-slate-500">Unidade:</span> <span className="text-white">{parsed.unit}</span></p>
         </div>
       );
     }
+    
+    // Mostrando os detalhes enviados em type referral, graduation, challenge_bang
+    if (action.details) {
+      if (['referral', 'referral_deal', 'graduation', 'challenge_bang'].includes(action.type)) {
+        // According to user request, do not show 'Nome' and 'WhatsApp' here, just 'Detalhes'.
+        return (
+          <div className="mt-2 text-xs text-slate-400 bg-slate-800 p-3 rounded-lg border border-slate-700 space-y-1">
+            <p><span className="text-slate-500">Detalhes:</span> <span className="text-white font-medium">{action.details}</span></p>
+          </div>
+        );
+      }
+    }
+
+    return (
+      <div className="mt-2 text-xs text-slate-400 bg-slate-800 p-2 rounded truncate">
+        Prova: {action.proof}
+      </div>
+    );
   };
 
   if (loading) return <div className="text-center text-slate-400 py-10">Carregando...</div>;
