@@ -86,12 +86,13 @@ export default function ValidationsTab() {
     }
     
     // Mostrando os detalhes enviados em type referral, graduation, challenge_bang
-    if (action.details) {
+    const details = action.details || parsed?.details;
+    if (details) {
       if (['referral', 'referral_deal', 'graduation', 'challenge_bang'].includes(action.type)) {
         // According to user request, do not show 'Nome' and 'WhatsApp' here, just 'Detalhes'.
         return (
           <div className="mt-2 text-xs text-slate-400 bg-slate-800 p-3 rounded-lg border border-slate-700 space-y-1">
-            <p><span className="text-slate-500">Detalhes:</span> <span className="text-white font-medium">{action.details}</span></p>
+            <p><span className="text-slate-500">Detalhes:</span> <span className="text-white font-medium">{details}</span></p>
           </div>
         );
       }

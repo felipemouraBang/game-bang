@@ -67,6 +67,21 @@ router.post('/', authenticate, async (req, res) => {
     }
   }
 
+  let finalProof = proof;
+  if (details) {
+    if (typeof finalProof === 'string') {
+      try {
+        const parsed = JSON.parse(finalProof);
+        parsed.details = details;
+        finalProof = JSON.stringify(parsed);
+      } catch (e) {
+        finalProof = JSON.stringify({ value: finalProof, details });
+      }
+    } else {
+      finalProof = { ...(finalProof || {}), details };
+    }
+  }
+
   const { data, error } = await supabase
     .from('actions')
     .insert({
@@ -74,8 +89,7 @@ router.post('/', authenticate, async (req, res) => {
       type,
       status: 'pending',
       points: POINTS_MAP[type],
-      proof: typeof proof === 'string' ? proof : JSON.stringify(proof),
-      details: details || null
+      proof: typeof finalProof === 'string' ? finalProof : JSON.stringify(finalProof)
     })
     .select()
     .single();

@@ -423,7 +423,6 @@ function UserPointsModal({ user, onClose }) {
                     </div>
                     {['referral', 'referral_deal', 'graduation', 'challenge_bang'].includes(action.type) && (
                       <div className="mt-2 text-xs font-medium text-orange-300/80 bg-orange-500/10 p-2 rounded border border-orange-500/20 space-y-1">
-                        {action.details && <p><span className="text-orange-400/80">Detalhes:</span> {action.details}</p>}
                         {(() => {
                           try {
                             let parsed = action.proof;
@@ -433,16 +432,23 @@ function UserPointsModal({ user, onClose }) {
                             if (typeof parsed === 'string') {
                               try { parsed = JSON.parse(parsed); } catch (e) {}
                             }
-                            if (parsed && typeof parsed === 'object') {
-                              return (
-                                <>
-                                  {(parsed.name || parsed.fullName) && <p><span className="text-orange-400/80">Nome:</span> {parsed.name || parsed.fullName}</p>}
-                                  {(parsed.phone || parsed.whatsapp) && <p><span className="text-orange-400/80">WhatsApp:</span> {parsed.phone || parsed.whatsapp}</p>}
-                                </>
-                              );
-                            }
+                            
+                            const detailsStr = action.details || parsed?.details;
+                            
+                            return (
+                              <>
+                                {detailsStr && <p><span className="text-orange-400/80">Detalhes:</span> {detailsStr}</p>}
+                                {parsed && typeof parsed === 'object' && (
+                                  <>
+                                    {(parsed.name || parsed.fullName) && <p><span className="text-orange-400/80">Nome:</span> {parsed.name || parsed.fullName}</p>}
+                                    {(parsed.phone || parsed.whatsapp) && <p><span className="text-orange-400/80">WhatsApp:</span> {parsed.phone || parsed.whatsapp}</p>}
+                                  </>
+                                )}
+                              </>
+                            );
                           } catch (e) {
-                            // Ignora se não for JSON válido
+                            const detailsStr = action.details;
+                            if (detailsStr) return <p><span className="text-orange-400/80">Detalhes:</span> {detailsStr}</p>;
                           }
                           return null;
                         })()}
