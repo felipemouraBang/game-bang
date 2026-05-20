@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, RefreshCw, Trash2, MinusCircle, User, X, Check } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Trash2, MinusCircle, PlusCircle, User, X, Check } from 'lucide-react';
 
 interface UserData {
   id: number;
@@ -83,10 +83,84 @@ function RemovePointsModal({ user, onClose, onConfirm }: { user: UserData, onClo
   );
 }
 
+function AddPointsModal({ user, onClose, onConfirm }: { user: UserData, onClose: () => void, onConfirm: (points: number, type: 'monthly' | 'annual' | 'both') => void }) {
+  const [points, setPoints] = useState('');
+  const [type, setType] = useState<'monthly' | 'annual' | 'both'>('monthly');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const p = parseInt(points);
+    if (!isNaN(p) && p > 0) {
+      onConfirm(p, type);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-800 rounded-xl p-6 w-full max-w-md border border-slate-700 shadow-2xl">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-bold text-white">Adicionar Pontos</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <p className="text-slate-300 mb-4">
+          Adicionar pontos para <strong className="text-white">{user.name}</strong>
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm text-slate-400 mb-1">Quantidade de Pontos</label>
+            <input 
+              type="number" 
+              min="1"
+              value={points}
+              onChange={e => setPoints(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white"
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm text-slate-400 mb-1">Tipo de Pontuação</label>
+            <select 
+              value={type}
+              onChange={e => setType(e.target.value as any)}
+              className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white"
+            >
+              <option value="monthly">Apenas Mensal</option>
+              <option value="annual">Apenas Anual</option>
+              <option value="both">Mensal e Anual</option>
+            </select>
+          </div>
+          
+          <div className="flex justify-end space-x-3 mt-6">
+            <button 
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
+            >
+              Cancelar
+            </button>
+            <button 
+              type="submit"
+              className="px-6 py-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded transition-colors"
+            >
+              Confirmar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function PointsTab() {
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<UserData[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [userToAddPoints, setUserToAddPoints] = useState<UserData | null>(null);
   const [userToRemovePoints, setUserToRemovePoints] = useState<UserData | null>(null);
   const [userToReset, setUserToReset] = useState<UserData | null>(null);
   const [confirmReset, setConfirmReset] = useState<'monthly' | 'annual' | null>(null);
@@ -182,6 +256,28 @@ export default function PointsTab() {
       } else {
         const data = await res.json();
         alert(data.error || 'Erro ao remover pontos.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddPoints = async (userId: number, points: number, type: 'monthly' | 'annual' | 'both') => {
+    try {
+      const res = await fetch('/api/admin/add-points', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, points, type }),
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const user = users.find(u => u.id === userId);
+        setUserToAddPoints(null);
+        showSuccess(`${points} pontos adicionados a ${user?.name || 'aluno'}!`);
+        fetchUsers();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Erro ao adicionar pontos.');
       }
     } catch (err) {
       console.error(err);
@@ -360,6 +456,13 @@ export default function PointsTab() {
                   </td>
                   <td className="px-6 py-4 text-right space-x-2">
                     <button
+                      onClick={() => setUserToAddPoints(u)}
+                      title="Adicionar pontos"
+                      className="p-2 text-slate-400 hover:text-green-500 transition-colors bg-slate-800 rounded-lg"
+                    >
+                      <PlusCircle className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => setUserToRemovePoints(u)}
                       title="Remover pontos"
                       className="p-2 text-slate-400 hover:text-orange-500 transition-colors bg-slate-800 rounded-lg"
@@ -387,6 +490,14 @@ export default function PointsTab() {
           </table>
         </div>
       </div>
+
+      {userToAddPoints && (
+        <AddPointsModal
+          user={userToAddPoints}
+          onClose={() => setUserToAddPoints(null)}
+          onConfirm={(points, type) => handleAddPoints(userToAddPoints.id, points, type)}
+        />
+      )}
 
       {userToRemovePoints && (
         <RemovePointsModal

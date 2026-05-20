@@ -103,6 +103,43 @@ router.post('/remove-points', authenticate, authorize(['admin']), async (req, re
   res.json({ message: 'Points removed successfully' });
 });
 
+// Add Points (Admin Only)
+router.post('/add-points', authenticate, authorize(['admin']), async (req, res) => {
+  const { userId, points, type } = req.body; // type: 'monthly' or 'annual' or 'both'
+
+  if (!userId || !points) {
+    return res.status(400).json({ error: 'User ID and points are required' });
+  }
+
+  const { data: user, error: userError } = await supabase
+    .from('users')
+    .select('score_monthly, score_annual')
+    .eq('id', userId)
+    .single();
+
+  if (userError || !user) return res.status(404).json({ error: 'User not found' });
+
+  const updates: any = {};
+  if (type === 'monthly' || type === 'both') {
+    updates.score_monthly = user.score_monthly + points;
+  }
+  if (type === 'annual' || type === 'both') {
+    updates.score_annual = user.score_annual + points;
+  }
+
+  if (Object.keys(updates).length > 0) {
+    const { error: updateError } = await supabase
+      .from('users')
+      .update(updates)
+      .eq('id', userId);
+
+    if (updateError) return res.status(500).json({ error: updateError.message });
+  }
+
+  logAction(req.user.id, 'ADD_POINTS', `Added ${points} points (${type}) to user ${userId}`);
+  res.json({ message: 'Points added successfully' });
+});
+
 // Reset Specific User Points (Admin Only)
 router.post('/reset-user', authenticate, authorize(['admin']), async (req, res) => {
   const { userId } = req.body;
