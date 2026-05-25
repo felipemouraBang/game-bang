@@ -7,7 +7,7 @@ import StudentDashboard from './StudentDashboard';
 export default function Dashboard() {
   const { user } = useAuth();
 
-  if (user.role === 'admin') {
+  if (user.role === 'admin' || user.role === 'restricted_admin') {
     return <AdminDashboard />;
   } else if (user.role === 'receptionist') {
     return <ReceptionDashboard />;

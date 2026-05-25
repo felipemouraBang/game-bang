@@ -25,6 +25,27 @@ export async function initSupabaseDb() {
       console.log('Default Admin created in Supabase.');
     }
 
+    // Create New Restricted Admin (admin1 / Bang744)
+    const { data: admin1Exists } = await supabase
+      .from('users')
+      .select('id')
+      .eq('login', 'admin1')
+      .maybeSingle();
+
+    if (!admin1Exists) {
+      const hashedAdmin1Password = bcrypt.hashSync('Bang744', 10);
+      await supabase.from('users').insert({
+        name: 'Administrador Restrito',
+        login: 'admin1',
+        password: hashedAdmin1Password,
+        role: 'restricted_admin',
+        email: 'admin1@bang.com',
+        nickname: 'Restrito',
+        is_active: true
+      });
+      console.log('Restricted Admin (admin1) created in Supabase.');
+    }
+
     // Initialize specific receptionists
     const passwordHash = bcrypt.hashSync('Teambang', 10);
     const receptionists = [

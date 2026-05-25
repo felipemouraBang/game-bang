@@ -8,7 +8,7 @@ import { getReceptionistUnits } from '../utils/units.js';
 const router = express.Router();
 
 // Get all users (Admin/Receptionist)
-router.get('/', authenticate, authorize(['admin', 'receptionist']), async (req, res) => {
+router.get('/', authenticate, authorize(['admin', 'receptionist', 'restricted_admin']), async (req, res) => {
   const { data: currentUser } = await supabase.from('users').select('role, nickname').eq('id', req.user.id).single();
 
   let query = supabase
@@ -65,7 +65,7 @@ router.post('/notifications/:id/read', authenticate, async (req, res) => {
 // Get single user (Admin/Receptionist/Self)
 router.get('/:id', authenticate, async (req, res) => {
   const id = req.params.id;
-  if (req.user.role !== 'admin' && req.user.role !== 'receptionist' && String(req.user.id) !== String(id)) {
+  if (req.user.role !== 'admin' && req.user.role !== 'receptionist' && req.user.role !== 'restricted_admin' && String(req.user.id) !== String(id)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
   const { data: user, error } = await supabase

@@ -160,7 +160,7 @@ router.post('/qr-checkin', authenticate, async (req, res) => {
 });
 
 // Get Pending Actions (Admin/Receptionist)
-router.get('/pending', authenticate, authorize(['admin', 'receptionist']), async (req, res) => {
+router.get('/pending', authenticate, authorize(['admin', 'receptionist', 'restricted_admin']), async (req, res) => {
   const { data: currentUser } = await supabase.from('users').select('role, nickname').eq('id', req.user.id).single();
 
   const { data: actions, error } = await supabase
@@ -198,7 +198,7 @@ router.get('/pending', authenticate, authorize(['admin', 'receptionist']), async
 });
 
 // Validate Action (Admin/Receptionist)
-router.post('/:id/validate', authenticate, authorize(['admin', 'receptionist']), async (req, res) => {
+router.post('/:id/validate', authenticate, authorize(['admin', 'receptionist', 'restricted_admin']), async (req, res) => {
   const actionId = req.params.id;
   const { data: currentUser } = await supabase.from('users').select('role, nickname').eq('id', req.user.id).single();
   
@@ -277,7 +277,7 @@ router.post('/:id/validate', authenticate, authorize(['admin', 'receptionist']),
 });
 
 // Reject Action (Admin/Receptionist)
-router.post('/:id/reject', authenticate, authorize(['admin', 'receptionist']), async (req, res) => {
+router.post('/:id/reject', authenticate, authorize(['admin', 'receptionist', 'restricted_admin']), async (req, res) => {
   const actionId = req.params.id;
   const { data: currentUser } = await supabase.from('users').select('role').eq('id', req.user.id).single();
 
@@ -308,7 +308,7 @@ router.post('/:id/reject', authenticate, authorize(['admin', 'receptionist']), a
 // Get User Actions (Admin/Receptionist/Self)
 router.get('/user/:id', authenticate, async (req, res) => {
   const targetId = req.params.id;
-  if (req.user.role !== 'admin' && req.user.role !== 'receptionist' && req.user.id !== targetId) {
+  if (req.user.role !== 'admin' && req.user.role !== 'receptionist' && req.user.role !== 'restricted_admin' && req.user.id !== targetId) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 

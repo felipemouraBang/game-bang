@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Users, CheckCircle, Trophy, FileText, Bell, QrCode, Timer } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import UsersTab from '../components/admin/UsersTab';
 import ValidationsTab from '../components/admin/ValidationsTab';
 import PointsTab from '../components/admin/PointsTab';
@@ -9,9 +10,10 @@ import QRCodeTab from '../components/admin/QRCodeTab';
 import ChallengesTab from '../components/admin/ChallengesTab';
 
 export default function AdminDashboard() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('users');
 
-  const tabs = [
+  const allTabs = [
     { id: 'users', label: 'Usuários', icon: Users },
     { id: 'validations', label: 'Validações', icon: CheckCircle },
     { id: 'points', label: 'Pontuação', icon: Trophy },
@@ -20,6 +22,10 @@ export default function AdminDashboard() {
     { id: 'notifications', label: 'Notificações', icon: Bell },
     { id: 'qrcode', label: 'QR Code', icon: QrCode },
   ];
+
+  const tabs = user?.role === 'restricted_admin'
+    ? allTabs.filter(tab => ['users', 'validations'].includes(tab.id))
+    : allTabs;
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
