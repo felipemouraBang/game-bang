@@ -30,6 +30,7 @@ async function startServer() {
   // API Routes
   app.post('/api/auth/login', loginHandler as any);
   app.post('/api/auth/register', registerHandler as any);
+  app.post('/api/auth/reset-password', (await import('./api/auth/reset-password.js')).default as any);
   app.get('/api/auth/me', meHandler as any);
   app.post('/api/auth/logout', logoutHandler as any);
   
