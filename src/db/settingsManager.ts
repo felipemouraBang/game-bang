@@ -37,6 +37,26 @@ function saveLocalSettings() {
   }
 }
 
+let settingsTableMissingLogged = false;
+
+function handleSupabaseError(action: string, keyOrKeys: string | string[], err: any) {
+  const errMsg = err?.message || String(err);
+  const isTableMissing = errMsg.includes("Could not find the table") || errMsg.includes("settings' in the schema cache");
+
+  if (isTableMissing) {
+    if (!settingsTableMissingLogged) {
+      settingsTableMissingLogged = true;
+      console.info(
+        `[SettingsManager] Persistent settings table 'settings' is not yet created in Supabase.\n` +
+        `-> The system is automatically using the local filesystem fallback: "${SETTINGS_FILE_PATH}".\n` +
+        `-> Tip: Run the SQL DDL queries from "/src/utils/supabase_migration.sql" on your Supabase dashboard SQL editor to enable DB-backed settings.`
+      );
+    }
+  } else {
+    console.warn(`[SettingsManager] ${action} with key(s) "${Array.isArray(keyOrKeys) ? keyOrKeys.join(', ') : keyOrKeys}" failed. Falling back to local store. Error:`, errMsg);
+  }
+}
+
 export async function getSetting(key: string, defaultValue: string = ''): Promise<string> {
   try {
     const { data, error } = await supabase
@@ -57,7 +77,7 @@ export async function getSetting(key: string, defaultValue: string = ''): Promis
       return data.value;
     }
   } catch (err) {
-    console.warn(`[SettingsManager] Get key "${key}" from Supabase failed. Falling back to local store. Error:`, (err as any).message || err);
+    handleSupabaseError('Get key', key, err);
   }
 
   return inMemorySettings[key] !== undefined ? inMemorySettings[key] : defaultValue;
@@ -84,7 +104,7 @@ export async function getSettings(keys: string[]): Promise<Record<string, string
       saveLocalSettings();
     }
   } catch (err) {
-    console.warn(`[SettingsManager] Get keys [${keys.join(', ')}] from Supabase failed. Falling back to local store. Error:`, (err as any).message || err);
+    handleSupabaseError('Get keys', keys, err);
   }
 
   keys.forEach(key => {
@@ -109,6 +129,6 @@ export async function setSetting(key: string, value: string): Promise<void> {
       throw error;
     }
   } catch (err) {
-    console.warn(`[SettingsManager] Write key "${key}" to Supabase failed. Kept on local store. Error:`, (err as any).message || err);
+    handleSupabaseError('Write key', key, err);
   }
 }

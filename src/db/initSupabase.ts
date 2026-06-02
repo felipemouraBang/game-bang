@@ -57,7 +57,10 @@ export async function initSupabaseDb() {
       { name: 'Recepção Moinhos', login: 'recepcao_moinhos', role: 'receptionist', nickname: 'Moinhos', email: 'recepcao@moinhos.com', unit: 'Moinhos' },
       { name: 'Recepção Protásio', login: 'recepcao_protasio', role: 'receptionist', nickname: 'Protásio', email: 'recepcao@protasio.com', unit: 'Protásio' },
       { name: 'Recepção Zona Sul', login: 'recepcao_zona_sul', role: 'receptionist', nickname: 'Zona Sul', email: 'recepcao@zona_sul.com', unit: 'Zona Sul' },
-      { name: 'Recepção Tramandai', login: 'recepcao_tramandai', role: 'receptionist', nickname: 'Tramandai', email: 'recepcao@tramandai.com', unit: 'Tramandai' }
+      { name: 'Recepção Tramandai', login: 'recepcao_tramandai', role: 'receptionist', nickname: 'Tramandai', email: 'recepcao@tramandai.com', unit: 'Tramandai' },
+      { name: 'Recepção Igara', login: 'recepcao_igara', role: 'receptionist', nickname: 'Canoas Igara', email: 'recepcao_igara@bang.com', unit: 'Canoas Igara' },
+      { name: 'Recepção Igara (Acento)', login: 'recpção_igara', role: 'receptionist', nickname: 'Canoas Igara', email: 'recpcao_igara_alt@bang.com', unit: 'Canoas Igara' },
+      { name: 'Canoas Rondon', login: 'canoas_rondon', role: 'receptionist', nickname: 'Canoas', email: 'canoas_rondon@bang.com', unit: 'Canoas' }
     ];
 
     for (const rec of receptionists) {

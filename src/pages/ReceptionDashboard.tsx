@@ -38,7 +38,7 @@ export default function ReceptionDashboard() {
       </div>
 
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 min-h-[500px]">
-        {activeTab === 'validations' && <ValidationsTab />}
+        {activeTab === 'validations' && <ValidationsTab isAdmin={false} />}
         {activeTab === 'users' && <UsersTab />}
       </div>
     </div>

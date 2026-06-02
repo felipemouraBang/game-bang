@@ -9,6 +9,7 @@ export const getReceptionistUnits = (nickname: string): string[] => {
     case 'Zona Sul': return ['ZS Muay', 'ZS Fitness'];
     case 'Tramandai': return ['Tramandai Muay'];
     case 'Canoas': return ['Canoas Muaythai', 'Canoas Fitness'];
+    case 'Canoas Igara': return ['Canoas Igara'];
     case 'Zona Leste': return ['Cristiano Muay', 'Cristiano Fitness'];
     default: return [];
   }

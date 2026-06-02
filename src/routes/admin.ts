@@ -281,7 +281,7 @@ router.get('/unit-leaders', authenticate, authorize(['admin', 'restricted_admin'
   }
 });
 
-// Get unlock status (Admin and Restricted Admin)
+// Get unlock status (Admin and Restricted Admin Only)
 router.get('/unlock-status', authenticate, authorize(['admin', 'restricted_admin']), async (req, res) => {
   try {
     const settings = await getSettings(['challenges_unlocked_at', 'graduations_unlocked_at']);
@@ -292,7 +292,7 @@ router.get('/unlock-status', authenticate, authorize(['admin', 'restricted_admin
   }
 });
 
-// Unlock challenges or graduations (Admin Only - Or allow restricted_admin if needed, let's allow both since they can both validate items)
+// Unlock challenges or graduations (Admin and Restricted Admin Only)
 router.post('/unlock', authenticate, authorize(['admin', 'restricted_admin']), async (req, res) => {
   const { type } = req.body; // 'challenges' or 'graduations'
 

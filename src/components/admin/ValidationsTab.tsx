@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Check, X, MapPin, Image, UserPlus, Star, Heart, Target } from 'lucide-react';
 
-export default function ValidationsTab() {
+interface ValidationsTabProps {
+  isAdmin?: boolean;
+}
+
+export default function ValidationsTab({ isAdmin = false }: ValidationsTabProps) {
   const [actions, setActions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unlockStatus, setUnlockStatus] = useState({
@@ -13,8 +17,10 @@ export default function ValidationsTab() {
 
   useEffect(() => {
     fetchPendingActions();
-    fetchUnlockStatus();
-  }, []);
+    if (isAdmin) {
+      fetchUnlockStatus();
+    }
+  }, [isAdmin]);
 
   const fetchUnlockStatus = async () => {
     try {
@@ -154,61 +160,63 @@ export default function ValidationsTab() {
   return (
     <div>
       {/* Seção de Desbloqueios Administrativos */}
-      <div className="bg-slate-950 border border-slate-700/80 rounded-xl p-5 mb-8">
-        <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
-          Controle de Envio (Destravar)
-        </h3>
-        <p className="text-sm text-slate-400 mb-5">
-          Por padrão, os alunos não podem reenviar atividades de Desafios ou Graduações após o primeiro envio. 
-          Use os botões abaixo para liberar novos envios para **todos** os alunos do sistema.
-        </p>
+      {isAdmin && (
+        <div className="bg-slate-950 border border-slate-700/80 rounded-xl p-5 mb-8">
+          <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+            Controle de Envio (Destravar)
+          </h3>
+          <p className="text-sm text-slate-400 mb-5">
+            Por padrão, os alunos não podem reenviar atividades de Desafios ou Graduações após o primeiro envio. 
+            Use os botões abaixo para liberar novos envios para **todos** os alunos do sistema.
+          </p>
 
-        {unlockSuccess && (
-          <div className="bg-green-500/10 border border-green-500 text-green-400 px-4 py-3 rounded-lg text-xs font-semibold mb-5 text-center">
-            {unlockSuccess}
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <div className="bg-slate-900 p-4 rounded-lg border border-slate-800 flex flex-col justify-between">
-            <div>
-              <h4 className="font-bold text-white text-sm">Desafios (Desafios Bang / Completados)</h4>
-              <p className="text-xs text-slate-500 mt-1 font-mono">
-                Último desbloqueio:{' '}
-                {unlockStatus.challenges_unlocked_at && unlockStatus.challenges_unlocked_at !== '1970-01-01T00:00:00.000Z'
-                  ? new Date(unlockStatus.challenges_unlocked_at).toLocaleString()
-                  : 'Nenhum'}
-              </p>
+          {unlockSuccess && (
+            <div className="bg-green-500/10 border border-green-500 text-green-400 px-4 py-3 rounded-lg text-xs font-semibold mb-5 text-center">
+              {unlockSuccess}
             </div>
-            <button
-              disabled={unlockLoading}
-              onClick={() => handleUnlock('challenges')}
-              className="mt-4 w-full px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold text-xs rounded-lg transition-transform transform hover:-translate-y-0.5 cursor-pointer uppercase tracking-wider text-center"
-            >
-              Destravar Desafios
-            </button>
-          </div>
+          )}
 
-          <div className="bg-slate-900 p-4 rounded-lg border border-slate-800 flex flex-col justify-between">
-            <div>
-              <h4 className="font-bold text-white text-sm">Graduações</h4>
-              <p className="text-xs text-slate-500 mt-1 font-mono">
-                Último desbloqueio:{' '}
-                {unlockStatus.graduations_unlocked_at && unlockStatus.graduations_unlocked_at !== '1970-01-01T00:00:00.000Z'
-                  ? new Date(unlockStatus.graduations_unlocked_at).toLocaleString()
-                  : 'Nenhum'}
-              </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="bg-slate-900 p-4 rounded-lg border border-slate-800 flex flex-col justify-between">
+              <div>
+                <h4 className="font-bold text-white text-sm">Desafios (Desafios Bang / Completados)</h4>
+                <p className="text-xs text-slate-500 mt-1 font-mono">
+                  Último desbloqueio:{' '}
+                  {unlockStatus.challenges_unlocked_at && unlockStatus.challenges_unlocked_at !== '1970-01-01T00:00:00.000Z'
+                    ? new Date(unlockStatus.challenges_unlocked_at).toLocaleString()
+                    : 'Nenhum'}
+                </p>
+              </div>
+              <button
+                disabled={unlockLoading}
+                onClick={() => handleUnlock('challenges')}
+                className="mt-4 w-full px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold text-xs rounded-lg transition-transform transform hover:-translate-y-0.5 cursor-pointer uppercase tracking-wider text-center"
+              >
+                Destravar Desafios
+              </button>
             </div>
-            <button
-              disabled={unlockLoading}
-              onClick={() => handleUnlock('graduations')}
-              className="mt-4 w-full px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold text-xs rounded-lg transition-transform transform hover:-translate-y-0.5 cursor-pointer uppercase tracking-wider text-center"
-            >
-              Destravar Graduações
-            </button>
+
+            <div className="bg-slate-900 p-4 rounded-lg border border-slate-800 flex flex-col justify-between">
+              <div>
+                <h4 className="font-bold text-white text-sm">Graduações</h4>
+                <p className="text-xs text-slate-500 mt-1 font-mono">
+                  Último desbloqueio:{' '}
+                  {unlockStatus.graduations_unlocked_at && unlockStatus.graduations_unlocked_at !== '1970-01-01T00:00:00.000Z'
+                    ? new Date(unlockStatus.graduations_unlocked_at).toLocaleString()
+                    : 'Nenhum'}
+                </p>
+              </div>
+              <button
+                disabled={unlockLoading}
+                onClick={() => handleUnlock('graduations')}
+                className="mt-4 w-full px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold text-xs rounded-lg transition-transform transform hover:-translate-y-0.5 cursor-pointer uppercase tracking-wider text-center"
+              >
+                Destravar Graduações
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-bold text-white">Validações Pendentes</h3>

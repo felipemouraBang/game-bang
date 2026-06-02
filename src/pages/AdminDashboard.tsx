@@ -52,7 +52,7 @@ export default function AdminDashboard() {
 
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 min-h-[500px]">
         {activeTab === 'users' && <UsersTab />}
-        {activeTab === 'validations' && <ValidationsTab />}
+        {activeTab === 'validations' && <ValidationsTab isAdmin={true} />}
         {activeTab === 'winners' && <WinnersTab />}
         {activeTab === 'points' && <PointsTab />}
         {activeTab === 'challenges' && <ChallengesTab />}
