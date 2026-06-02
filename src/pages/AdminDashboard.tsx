@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Users, CheckCircle, Trophy, FileText, Bell, QrCode, Timer } from 'lucide-react';
+import { Users, CheckCircle, Trophy, FileText, Bell, QrCode, Timer, Award } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import UsersTab from '../components/admin/UsersTab';
 import ValidationsTab from '../components/admin/ValidationsTab';
+import WinnersTab from '../components/admin/WinnersTab';
 import PointsTab from '../components/admin/PointsTab';
 import LogsTab from '../components/admin/LogsTab';
 import NotificationsTab from '../components/admin/NotificationsTab';
@@ -16,6 +17,7 @@ export default function AdminDashboard() {
   const allTabs = [
     { id: 'users', label: 'Usuários', icon: Users },
     { id: 'validations', label: 'Validações', icon: CheckCircle },
+    { id: 'winners', label: 'Primeiros Colocados', icon: Award },
     { id: 'points', label: 'Pontuação', icon: Trophy },
     { id: 'challenges', label: 'Desafios', icon: Timer },
     { id: 'logs', label: 'Logs', icon: FileText },
@@ -24,7 +26,7 @@ export default function AdminDashboard() {
   ];
 
   const tabs = user?.role === 'restricted_admin'
-    ? allTabs.filter(tab => ['users', 'validations'].includes(tab.id))
+    ? allTabs.filter(tab => ['users', 'validations', 'winners'].includes(tab.id))
     : allTabs;
 
   return (
@@ -51,6 +53,7 @@ export default function AdminDashboard() {
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 min-h-[500px]">
         {activeTab === 'users' && <UsersTab />}
         {activeTab === 'validations' && <ValidationsTab />}
+        {activeTab === 'winners' && <WinnersTab />}
         {activeTab === 'points' && <PointsTab />}
         {activeTab === 'challenges' && <ChallengesTab />}
         {activeTab === 'logs' && <LogsTab />}

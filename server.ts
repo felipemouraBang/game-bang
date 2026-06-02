@@ -4,6 +4,8 @@ import path from 'path';
 import fs from 'fs';
 import cookieParser from 'cookie-parser';
 import { initSupabaseDb } from './src/db/initSupabase.js';
+import { supabase } from './src/db/supabase.js';
+import { getSetting, setSetting } from './src/db/settingsManager.js';
 import loginHandler from './api/auth/login.js';
 import registerHandler from './api/auth/register.js';
 import meHandler from './api/auth/me.js';
@@ -16,11 +18,60 @@ import challengeRoutes from './src/routes/challenges.js';
 
 const PORT = 3000;
 
+async function checkAndResetMonthlyScores() {
+  try {
+    const now = new Date();
+    // Translate standard UTC to Brasília timezone (GMT-3) to be fully accurate
+    const brTime = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+    const day = brTime.getUTCDate();
+    const year = brTime.getUTCFullYear();
+    const month = String(brTime.getUTCMonth() + 1).padStart(2, '0');
+    const currentMonthStr = `${year}-${month}`;
+
+    if (day === 1) {
+      // Check if already reset for this month in settings
+      const lastResetMonth = await getSetting('last_monthly_reset_month', '');
+
+      if (lastResetMonth !== currentMonthStr) {
+        console.log(`[Auto-Reset] It is the 1st of the month (${currentMonthStr}). Resetting monthly scores...`);
+
+        // Reset scores
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({ score_monthly: 0 })
+          .eq('role', 'student');
+
+        if (updateError) throw updateError;
+
+        // Upsert setting key
+        await setSetting('last_monthly_reset_month', currentMonthStr);
+
+        // Insert log
+        await supabase.from('logs').insert({
+          user_id: 1, // System default ID
+          action: 'AUTO_RESET_MONTHLY_ALL',
+          details: `Automatic monthly points reset for ${currentMonthStr} was executed.`
+        });
+
+        console.log('[Auto-Reset] Automatic monthly score reset completed successfully.');
+      }
+    }
+  } catch (err) {
+    console.error('[Auto-Reset] Auto monthly reset exception:', err);
+  }
+}
+
 async function startServer() {
   const app = express();
 
   // Initialize Default Users in Supabase
   await initSupabaseDb();
+
+  // Run immediately and Schedule hourly check for automatic monthly scores reset
+  await checkAndResetMonthlyScores();
+  setInterval(() => {
+    checkAndResetMonthlyScores().catch(err => console.error('[Auto-Reset] Interval error:', err));
+  }, 60 * 60 * 1000);
 
   app.set('trust proxy', 1); // Trust first proxy (required for secure cookies behind Nginx/GCP)
   app.use(express.json({ limit: '50mb' }));

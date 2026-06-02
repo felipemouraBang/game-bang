@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { supabase } from './supabase.js';
+import { getSetting, setSetting } from './settingsManager.js';
 
 export async function initSupabaseDb() {
   try {
@@ -101,6 +102,55 @@ export async function initSupabaseDb() {
         is_active: true
       });
       console.log('Default Student created in Supabase.');
+    }
+
+    // Recalculate monthly scores for all students, keeping only monthly points made from 01/06/2026 onwards
+    const migrationKey = 'recalculated_monthly_points_from_june_2026';
+    const isAlreadyRecalculated = await getSetting(migrationKey, '');
+
+    if (isAlreadyRecalculated !== 'true') {
+      console.log('[Recalculate_June] Recalculating monthly points from 2026-06-01 onwards...');
+
+      const { data: students, error: studentsError } = await supabase
+        .from('users')
+        .select('id, name, score_monthly')
+        .eq('role', 'student');
+
+      if (studentsError) {
+        console.error('[Recalculate_June] Error fetching students:', studentsError);
+      } else if (students) {
+        console.log(`[Recalculate_June] Found ${students.length} students to recalculate.`);
+
+        for (const student of students) {
+          const { data: actions, error: actionsError } = await supabase
+            .from('actions')
+            .select('points')
+            .eq('user_id', student.id)
+            .eq('status', 'approved')
+            .gte('created_at', '2026-06-01T00:00:00.000Z');
+
+          if (actionsError) {
+            console.error(`[Recalculate_June] Error fetching actions for student ${student.name} (ID: ${student.id}):`, actionsError);
+            continue;
+          }
+
+          const totalPoints = actions ? actions.reduce((sum, act) => sum + (act.points || 0), 0) : 0;
+
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({ score_monthly: totalPoints })
+            .eq('id', student.id);
+
+          if (updateError) {
+            console.error(`[Recalculate_June] Error updating student ${student.name} (ID: ${student.id}) score:`, updateError);
+          } else {
+            console.log(`[Recalculate_June] Student ${student.name} score updated from ${student.score_monthly} to ${totalPoints}`);
+          }
+        }
+      }
+
+      await setSetting(migrationKey, 'true');
+      console.log('[Recalculate_June] Recalculation migration finished successfully.');
     }
   } catch (error) {
     console.error('Error initializing Supabase DB defaults:', error);

@@ -2,6 +2,7 @@ import express from 'express';
 import { supabase } from '../db/supabase.js';
 import { authenticate, authorize, logAction } from '../middleware/auth.js';
 import { getReceptionistUnits } from '../utils/units.js';
+import { getSetting } from '../db/settingsManager.js';
 
 const router = express.Router();
 
@@ -26,6 +27,29 @@ router.post('/', authenticate, async (req, res) => {
 
   if (!POINTS_MAP[type]) {
     return res.status(400).json({ error: 'Invalid action type' });
+  }
+
+  // --- Lock system for Graduation and Challenges ---
+  if (type === 'graduation' || type === 'challenge_bang') {
+    const key = type === 'graduation' ? 'graduations_unlocked_at' : 'challenges_unlocked_at';
+    const unlockedAt = await getSetting(key, '1970-01-01T00:00:00.000Z');
+    const typesToCheck = type === 'graduation' ? ['graduation'] : ['challenge_bang', 'challenge_completion'];
+
+    const { data: existing } = await supabase
+      .from('actions')
+      .select('id')
+      .eq('user_id', userId)
+      .in('type', typesToCheck)
+      .gt('created_at', unlockedAt)
+      .in('status', ['pending', 'approved'])
+      .maybeSingle();
+
+    if (existing) {
+      const label = type === 'graduation' ? 'Graduação' : 'Desafio';
+      return res.status(400).json({ 
+        error: `Você já enviou um registro de ${label} para validação. Aguarde a liberação da administração.` 
+      });
+    }
   }
 
   const today = new Date().toISOString().split('T')[0];

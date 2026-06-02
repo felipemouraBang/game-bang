@@ -1,6 +1,7 @@
 import express from 'express';
 import { supabase } from '../db/supabase.js';
 import { authenticate, authorize, logAction } from '../middleware/auth.js';
+import { getSetting } from '../db/settingsManager.js';
 
 const router = express.Router();
 
@@ -74,15 +75,21 @@ router.post('/:id/complete', authenticate, async (req, res) => {
     }
 
     // Check if user already submitted
+    const unlockedAt = await getSetting('challenges_unlocked_at', '1970-01-01T00:00:00.000Z');
+
     const { data: existing } = await supabase
       .from('actions')
       .select('id')
       .eq('user_id', userId)
-      .eq('challenge_id', challengeId)
+      .in('type', ['challenge_bang', 'challenge_completion'])
+      .gt('created_at', unlockedAt)
+      .in('status', ['pending', 'approved'])
       .maybeSingle();
 
     if (existing) {
-      return res.status(400).json({ error: 'You have already submitted completion for this challenge.' });
+      return res.status(400).json({ 
+        error: 'Você já enviou um desafio para validação. Aguarde a liberação da administração para enviar novamente.' 
+      });
     }
 
     // Get user name
