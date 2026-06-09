@@ -52,7 +52,10 @@ router.post('/', authenticate, async (req, res) => {
     }
   }
 
-  const today = new Date().toISOString().split('T')[0];
+  // Get date in Brazil's timezone (America/Sao_Paulo) to prevent UTC rollover issues (after 21:00 BRT)
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  const startOfDay = `${today}T00:00:00-03:00`;
+  const endOfDay = `${today}T23:59:59-03:00`;
 
   // Check-in validation (GPS)
   if (type.startsWith('checkin')) {
@@ -61,8 +64,8 @@ router.post('/', authenticate, async (req, res) => {
       .select('id')
       .eq('user_id', userId)
       .eq('type', type)
-      .gte('created_at', `${today}T00:00:00Z`)
-      .lte('created_at', `${today}T23:59:59Z`)
+      .gte('created_at', startOfDay)
+      .lte('created_at', endOfDay)
       .in('status', ['pending', 'approved'])
       .maybeSingle();
 
@@ -81,8 +84,8 @@ router.post('/', authenticate, async (req, res) => {
       .select('id')
       .eq('user_id', userId)
       .eq('type', 'post')
-      .gte('created_at', `${today}T00:00:00Z`)
-      .lte('created_at', `${today}T23:59:59Z`)
+      .gte('created_at', startOfDay)
+      .lte('created_at', endOfDay)
       .in('status', ['pending', 'approved'])
       .maybeSingle();
 
@@ -128,15 +131,17 @@ router.post('/', authenticate, async (req, res) => {
 router.post('/qr-checkin', authenticate, async (req, res) => {
   const userId = req.user.id;
   const { type = 'checkin' } = req.body;
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  const startOfDay = `${today}T00:00:00-03:00`;
+  const endOfDay = `${today}T23:59:59-03:00`;
   
   const { data: existing } = await supabase
     .from('actions')
     .select('id')
     .eq('user_id', userId)
     .eq('type', type)
-    .gte('created_at', `${today}T00:00:00Z`)
-    .lte('created_at', `${today}T23:59:59Z`)
+    .gte('created_at', startOfDay)
+    .lte('created_at', endOfDay)
     .in('status', ['pending', 'approved'])
     .maybeSingle();
 
