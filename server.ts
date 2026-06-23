@@ -8,6 +8,7 @@ import { supabase } from './src/db/supabase.js';
 import { getSetting, setSetting } from './src/db/settingsManager.js';
 import loginHandler from './api/auth/login.js';
 import registerHandler from './api/auth/register.js';
+import resetPasswordHandler from './api/auth/reset-password.js';
 import meHandler from './api/auth/me.js';
 import logoutHandler from './api/auth/logout.js';
 import userRoutes from './src/routes/users.js';
@@ -81,7 +82,7 @@ async function startServer() {
   // API Routes
   app.post('/api/auth/login', loginHandler as any);
   app.post('/api/auth/register', registerHandler as any);
-  app.post('/api/auth/reset-password', (await import('./api/auth/reset-password.js')).default as any);
+  app.post('/api/auth/reset-password', resetPasswordHandler as any);
   app.get('/api/auth/me', meHandler as any);
   app.post('/api/auth/logout', logoutHandler as any);
   

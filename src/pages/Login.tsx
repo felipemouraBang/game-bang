@@ -15,6 +15,7 @@ export default function Login() {
   const [isResetting, setIsResetting] = useState(false);
   const [resetLoginOrEmail, setResetLoginOrEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const { login: authLogin } = useAuth();
   const navigate = useNavigate();
@@ -23,11 +24,16 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
-    const success = await authLogin(login, password);
-    if (success) {
-      navigate('/');
-    } else {
-      setError('Credenciais inválidas. Tente novamente.');
+    setIsLoading(true);
+    try {
+      const success = await authLogin(login, password);
+      if (success) {
+        navigate('/');
+      } else {
+        setError('Credenciais inválidas. Tente novamente.');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -127,9 +133,10 @@ export default function Login() {
 
               <button
                 type="submit"
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-lg transition-colors shadow-lg shadow-orange-500/20"
+                disabled={isLoading}
+                className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold py-3 rounded-lg transition-colors shadow-lg shadow-orange-500/20"
               >
-                ENTRAR
+                {isLoading ? 'ENTRANDO...' : 'ENTRAR'}
               </button>
             </form>
 
