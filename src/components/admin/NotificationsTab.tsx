@@ -25,7 +25,9 @@ export default function NotificationsTab() {
     try {
       const res = await fetch('/api/users', { credentials: 'include' });
       const data = await res.json();
-      setUsers(data.filter(u => u.role === 'student'));
+      const students = data.filter(u => u.role === 'student');
+      students.sort((a, b) => a.name.localeCompare(b.name));
+      setUsers(students);
     } catch (err) {
       console.error(err);
     }
