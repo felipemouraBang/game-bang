@@ -3,7 +3,6 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { serialize } from 'cookie';
 import { supabase } from '../../src/db/supabase.js';
-import { initSupabaseDb } from '../../src/db/initSupabase.js';
 
 const SECRET_KEY = process.env.JWT_SECRET || 'bang_ranking_secret_key_2024';
 
@@ -11,9 +10,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-
-  // Initialize DB defaults
-  await initSupabaseDb();
 
   const { login: rawLogin, password: rawPassword } = req.body;
   const login = rawLogin?.trim();
