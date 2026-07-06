@@ -155,6 +155,68 @@ export async function initSupabaseDb() {
       await setSetting(migrationKey, 'true');
       console.log('[Recalculate_June] Recalculation migration finished successfully.');
     }
+
+    // Migration: Correct July Hall of Fame entries to June, and reset/recalculate monthly points from July 1st, 2026 onwards
+    const migrationJulyKey = 'fix_july_winners_and_recalculate_july_2026';
+    const isAlreadyRecalculatedJuly = await getSetting(migrationJulyKey, '');
+
+    if (isAlreadyRecalculatedJuly !== 'true') {
+      console.log('[Migration_July] Fixing July Hall of Fame entries to June...');
+      // Update hall_of_fame: 2026-07 -> 2026-06
+      const { error: hofUpdateError } = await supabase
+        .from('hall_of_fame')
+        .update({ period_identifier: '2026-06' })
+        .eq('period_type', 'month')
+        .eq('period_identifier', '2026-07');
+
+      if (hofUpdateError) {
+        console.error('[Migration_July] Error correcting July HOF entries:', hofUpdateError);
+      } else {
+        console.log('[Migration_July] Corrected July HOF entries to June successfully.');
+      }
+
+      console.log('[Migration_July] Recalculating monthly points from 2026-07-01 onwards...');
+      const { data: students, error: studentsError } = await supabase
+        .from('users')
+        .select('id, name, score_monthly')
+        .eq('role', 'student');
+
+      if (studentsError) {
+        console.error('[Migration_July] Error fetching students:', studentsError);
+      } else if (students) {
+        console.log(`[Migration_July] Found ${students.length} students to recalculate for July.`);
+
+        for (const student of students) {
+          const { data: actions, error: actionsError } = await supabase
+            .from('actions')
+            .select('points')
+            .eq('user_id', student.id)
+            .eq('status', 'approved')
+            .gte('created_at', '2026-07-01T00:00:00.000Z');
+
+          if (actionsError) {
+            console.error(`[Migration_July] Error fetching actions for student ${student.name} (ID: ${student.id}):`, actionsError);
+            continue;
+          }
+
+          const totalPoints = actions ? actions.reduce((sum, act) => sum + (act.points || 0), 0) : 0;
+
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({ score_monthly: totalPoints })
+            .eq('id', student.id);
+
+          if (updateError) {
+            console.error(`[Migration_July] Error updating student ${student.name} (ID: ${student.id}) score:`, updateError);
+          } else {
+            console.log(`[Migration_July] Student ${student.name} score updated from ${student.score_monthly} to ${totalPoints}`);
+          }
+        }
+      }
+
+      await setSetting(migrationJulyKey, 'true');
+      console.log('[Migration_July] July correction and recalculation finished successfully.');
+    }
   } catch (error) {
     console.error('Error initializing Supabase DB defaults:', error);
   }

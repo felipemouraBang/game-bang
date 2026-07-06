@@ -21,6 +21,58 @@ router.post('/reset/monthly', authenticate, authorize(['admin']), async (req, re
       logAction(req.user.id, 'RESET_MONTHLY', `Reset monthly points for user ${userId}`);
       res.json({ message: 'Monthly points reset successfully' });
     } else {
+      // Save monthly winners of each unit before manual reset
+      const now = new Date();
+      const brTime = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+      
+      // If resetting in the first 10 days of the month, the points are highly likely for the previous month
+      let targetYear = brTime.getUTCFullYear();
+      let targetMonthNum = brTime.getUTCMonth() + 1; // 1-12
+      if (brTime.getUTCDate() <= 10) {
+        targetMonthNum -= 1;
+        if (targetMonthNum === 0) {
+          targetMonthNum = 12;
+          targetYear -= 1;
+        }
+      }
+      const targetMonthStr = `${targetYear}-${String(targetMonthNum).padStart(2, '0')}`;
+
+      const { data: students } = await supabase
+        .from('users')
+        .select('id, name, unit, score_monthly, email, photo')
+        .eq('role', 'student')
+        .eq('is_active', true);
+
+      if (students && students.length > 0) {
+        // Group by unit
+        const unitsMap: Record<string, any[]> = {};
+        students.forEach(s => {
+          const unitName = s.unit || 'Sem Unidade';
+          if (!unitsMap[unitName]) unitsMap[unitName] = [];
+          unitsMap[unitName].push(s);
+        });
+
+        const hallOfFameEntries: any[] = [];
+        for (const unitName of Object.keys(unitsMap)) {
+          const unitStudents = unitsMap[unitName];
+          const activeScorers = unitStudents.filter(s => (s.score_monthly || 0) > 0);
+          if (activeScorers.length > 0) {
+            activeScorers.sort((a, b) => b.score_monthly - a.score_monthly);
+            const winner = activeScorers[0];
+            hallOfFameEntries.push({
+              period_type: 'month',
+              period_identifier: targetMonthStr,
+              user_id: winner.id,
+              score: winner.score_monthly
+            });
+          }
+        }
+
+        if (hallOfFameEntries.length > 0) {
+          await supabase.from('hall_of_fame').insert(hallOfFameEntries);
+        }
+      }
+
       const { error, count } = await supabase
         .from('users')
         .update({ score_monthly: 0 })
@@ -222,6 +274,78 @@ router.post('/notify', authenticate, authorize(['admin']), async (req, res) => {
 // Get First Place Students of each unit (Admin and Restricted Admin)
 router.get('/unit-leaders', authenticate, authorize(['admin', 'restricted_admin']), async (req, res) => {
   try {
+    const { month } = req.query; // e.g. '2026-06'
+    
+    // Get current month in Brazil's timezone
+    const now = new Date();
+    const brTime = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+    const currentMonthStr = `${brTime.getUTCFullYear()}-${String(brTime.getUTCMonth() + 1).padStart(2, '0')}`;
+
+    if (month && month !== currentMonthStr) {
+      // Fetch historical winners from hall_of_fame
+      const { data: records, error: hofError } = await supabase
+        .from('hall_of_fame')
+        .select(`
+          score,
+          users:user_id (id, name, unit, email, photo)
+        `)
+        .eq('period_type', 'month')
+        .eq('period_identifier', month);
+
+      if (hofError) throw hofError;
+
+      // Get all unique units to show full list even if some units had no winners
+      const { data: studentsData } = await supabase
+        .from('users')
+        .select('unit')
+        .eq('role', 'student')
+        .eq('is_active', true);
+
+      const uniqueUnits = Array.from(new Set((studentsData || []).map(u => u.unit).filter(Boolean)));
+      if (uniqueUnits.length === 0) {
+        uniqueUnits.push('Sem Unidade');
+      }
+
+      const leadersByUnit: Record<string, any> = {};
+      uniqueUnits.forEach(u => {
+        leadersByUnit[u] = null;
+      });
+
+      records?.forEach((rec: any) => {
+        const user = rec.users;
+        if (user) {
+          const unit = user.unit || 'Sem Unidade';
+          leadersByUnit[unit] = {
+            id: user.id,
+            name: user.name,
+            score: rec.score,
+            email: user.email,
+            photo: user.photo
+          };
+        }
+      });
+
+      const result = Object.keys(leadersByUnit).map(unitName => ({
+        unit: unitName,
+        monthlyLeader: leadersByUnit[unitName] || {
+          id: null,
+          name: '',
+          score: 0,
+          email: '',
+          photo: ''
+        },
+        annualLeader: {
+          id: null,
+          name: '',
+          score: 0,
+          email: '',
+          photo: ''
+        }
+      }));
+
+      return res.json(result);
+    }
+
     const { data: students, error } = await supabase
       .from('users')
       .select('id, name, unit, score_monthly, score_annual, email, photo')

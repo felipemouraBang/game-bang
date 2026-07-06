@@ -36,6 +36,68 @@ async function checkAndResetMonthlyScores() {
       if (lastResetMonth !== currentMonthStr) {
         console.log(`[Auto-Reset] It is the 1st of the month (${currentMonthStr}). Resetting monthly scores...`);
 
+        // Calculate previous month string (e.g. '2026-06' if current is '2026-07')
+        let prevYear = brTime.getUTCFullYear();
+        let prevMonthNum = brTime.getUTCMonth(); // getUTCMonth() is 0-11
+        if (prevMonthNum === 0) {
+          prevMonthNum = 12;
+          prevYear = prevYear - 1;
+        }
+        const prevMonthStr = `${prevYear}-${String(prevMonthNum).padStart(2, '0')}`;
+
+        // 1. Fetch current monthly rankings for each unit to determine previous month's winners
+        try {
+          const { data: students, error: studentsError } = await supabase
+            .from('users')
+            .select('id, name, unit, score_monthly, email, photo')
+            .eq('role', 'student')
+            .eq('is_active', true);
+
+          if (studentsError) {
+            console.error('[Auto-Reset] Error fetching students for Hall of Fame:', studentsError);
+          } else if (students && students.length > 0) {
+            // Group by unit
+            const unitsMap: Record<string, any[]> = {};
+            students.forEach(s => {
+              const unitName = s.unit || 'Sem Unidade';
+              if (!unitsMap[unitName]) unitsMap[unitName] = [];
+              unitsMap[unitName].push(s);
+            });
+
+            const hallOfFameEntries: any[] = [];
+
+            for (const unitName of Object.keys(unitsMap)) {
+              const unitStudents = unitsMap[unitName];
+              // Filter those with points > 0
+              const activeScorers = unitStudents.filter(s => (s.score_monthly || 0) > 0);
+              if (activeScorers.length > 0) {
+                // Find the one with max score_monthly
+                activeScorers.sort((a, b) => b.score_monthly - a.score_monthly);
+                const winner = activeScorers[0];
+
+                hallOfFameEntries.push({
+                  period_type: 'month',
+                  period_identifier: prevMonthStr,
+                  user_id: winner.id,
+                  score: winner.score_monthly
+                });
+              }
+            }
+
+            if (hallOfFameEntries.length > 0) {
+              console.log(`[Auto-Reset] Inserting ${hallOfFameEntries.length} winners into hall_of_fame for ${prevMonthStr}...`);
+              const { error: hofError } = await supabase
+                .from('hall_of_fame')
+                .insert(hallOfFameEntries);
+              if (hofError) {
+                console.error('[Auto-Reset] Error inserting into hall_of_fame:', hofError);
+              }
+            }
+          }
+        } catch (hofErr) {
+          console.error('[Auto-Reset] Failed to populate Hall of Fame before reset:', hofErr);
+        }
+
         // Reset scores
         const { error: updateError } = await supabase
           .from('users')

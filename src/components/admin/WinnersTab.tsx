@@ -20,13 +20,42 @@ export default function WinnersTab() {
   const [loading, setLoading] = useState(true);
   const [scoreType, setScoreType] = useState<'monthly' | 'annual'>('monthly');
 
-  useEffect(() => {
-    fetchLeaders();
-  }, []);
+  // Generate current month in Brazil's timezone
+  const now = new Date();
+  const brTime = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  const currentMonthStr = `${brTime.getFullYear()}-${String(brTime.getMonth() + 1).padStart(2, '0')}`;
 
-  const fetchLeaders = async () => {
+  const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthStr);
+
+  const generateLastMonths = () => {
+    const list = [];
+    const monthNames = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(brTime.getFullYear(), brTime.getMonth() - i, 1);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const value = `${year}-${month}`;
+      const label = `${monthNames[d.getMonth()]} de ${year}`;
+      list.push({ value, label });
+    }
+    return list;
+  };
+
+  const monthsList = generateLastMonths();
+
+  useEffect(() => {
+    fetchLeaders(selectedMonth);
+  }, [selectedMonth]);
+
+  const fetchLeaders = async (monthVal: string) => {
+    setLoading(true);
     try {
-      const res = await fetch('/api/admin/unit-leaders', { credentials: 'include' });
+      const url = `/api/admin/unit-leaders?month=${monthVal}`;
+      const res = await fetch(url, { credentials: 'include' });
       const data = await res.json();
       setLeaders(data);
     } catch (err) {
@@ -36,11 +65,13 @@ export default function WinnersTab() {
     }
   };
 
+  const isCurrentMonth = selectedMonth === currentMonthStr;
+
   if (loading) return <div className="text-center text-slate-400 py-10">Carregando primeiros colocados...</div>;
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Trophy className="text-yellow-500 w-6 h-6" /> Primeiros Colocados por Unidade
@@ -50,27 +81,57 @@ export default function WinnersTab() {
           </p>
         </div>
 
-        <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-700">
-          <button
-            onClick={() => setScoreType('monthly')}
-            className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${
-              scoreType === 'monthly'
-                ? 'bg-orange-500 text-white shadow'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Ranking Mensal
-          </button>
-          <button
-            onClick={() => setScoreType('annual')}
-            className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${
-              scoreType === 'annual'
-                ? 'bg-orange-500 text-white shadow'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Ranking Anual
-          </button>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
+          {/* Month select dropdown */}
+          <div className="flex items-center gap-2 bg-slate-900 border border-slate-700/80 px-3 py-1.5 rounded-lg">
+            <label className="text-xs text-slate-400 font-medium whitespace-nowrap">Mês/Ano:</label>
+            <select
+              value={selectedMonth}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedMonth(val);
+                if (val !== currentMonthStr) {
+                  setScoreType('monthly');
+                }
+              }}
+              className="bg-transparent text-white text-sm font-semibold border-none focus:outline-none focus:ring-0 cursor-pointer pr-8"
+            >
+              {monthsList.map((m) => (
+                <option key={m.value} value={m.value} className="bg-slate-950 text-white">
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {isCurrentMonth ? (
+            <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-700">
+              <button
+                onClick={() => setScoreType('monthly')}
+                className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${
+                  scoreType === 'monthly'
+                    ? 'bg-orange-500 text-white shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Ranking Mensal
+              </button>
+              <button
+                onClick={() => setScoreType('annual')}
+                className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${
+                  scoreType === 'annual'
+                    ? 'bg-orange-500 text-white shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Ranking Anual
+              </button>
+            </div>
+          ) : (
+            <div className="text-xs text-orange-400 bg-orange-500/10 border border-orange-500/20 px-3 py-2.5 rounded-lg flex items-center justify-center font-medium">
+              Histórico Mensal Ativo
+            </div>
+          )}
         </div>
       </div>
 
