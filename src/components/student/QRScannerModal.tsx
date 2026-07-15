@@ -18,7 +18,10 @@ export default function QRScannerModal({ onClose }) {
 
         const config = { fps: 10, qrbox: { width: 250, height: 250 } };
         const onScanSuccess = (decodedText: string) => {
-          if (decodedText === 'BANG_FIGHT_CHECKIN_QR') {
+          const isValidCheckin = decodedText === 'BANG_FIGHT_CHECKIN_QR' || 
+                                 decodedText === 'https://game-bang.vercel.app/' ||
+                                 decodedText.includes('game-bang.vercel.app');
+          if (isValidCheckin) {
             html5QrCode.stop().then(() => {
               handleCheckin();
             }).catch(console.error);

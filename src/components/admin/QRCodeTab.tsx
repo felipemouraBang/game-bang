@@ -3,7 +3,7 @@ import QRCode from 'react-qr-code';
 import { QrCode, Globe, Download, CheckCircle, ExternalLink } from 'lucide-react';
 
 export default function QRCodeTab() {
-  const checkinValue = "BANG_FIGHT_CHECKIN_QR";
+  const checkinValue = "https://game-bang.vercel.app/?action=checkin";
   const siteUrl = "https://game-bang.vercel.app/";
 
   const handleDownload = (id: string, fileName: string) => {
@@ -44,7 +44,7 @@ export default function QRCodeTab() {
               <h3 className="text-lg font-bold text-white">QR Code de Check-in</h3>
             </div>
             <p className="text-xs text-slate-400 text-center mb-4 leading-relaxed px-2">
-              Utilizado para os alunos confirmarem presença presencial diária. Permite apenas um check-in por dia por aluno.
+              Se escaneado pelo app realiza o check-in; se escaneado pela câmera nativa do celular, acessa o link do app. Permite apenas um check-in por dia por aluno.
             </p>
           </div>
           

@@ -13,7 +13,7 @@ const ProtectedRoute = ({ children, roles }: { children: React.ReactNode, roles?
   const { user, loading } = useAuth();
 
   if (loading) return <div>Loading...</div>;
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to={`/login${window.location.search}`} />;
   if (roles && !roles.includes(user.role)) return <Navigate to="/" />;
 
   return <>{children}</>;

@@ -28,7 +28,7 @@ export default function Login() {
     try {
       const success = await authLogin(login, password);
       if (success) {
-        navigate('/');
+        navigate(`/${window.location.search}`);
       } else {
         setError('Credenciais inválidas. Tente novamente.');
       }
