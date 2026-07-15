@@ -127,10 +127,10 @@ export default function ValidationsTab({ isAdmin = false }: ValidationsTabProps)
 
     if (parsed && action.type === 'challenge_completion') {
       return (
-        <div className="mt-2 text-xs text-slate-400 bg-slate-800 p-3 rounded-lg border border-slate-700 space-y-1">
-          <p><span className="text-slate-500">Nome:</span> <span className="text-white">{parsed.fullName}</span></p>
-          <p><span className="text-slate-500">WhatsApp:</span> <span className="text-white">{parsed.whatsapp}</span></p>
-          <p><span className="text-slate-500">Unidade:</span> <span className="text-white">{parsed.unit}</span></p>
+        <div className="mt-0.5 text-[10px] text-slate-400 bg-slate-950/40 p-1 px-2 rounded border border-slate-800/60 flex flex-wrap gap-x-3 gap-y-0.5 inline-flex max-w-full">
+          <p><span className="text-slate-500">Nome:</span> <span className="text-white font-medium">{parsed.fullName}</span></p>
+          <p><span className="text-slate-500">WhatsApp:</span> <span className="text-white font-medium">{parsed.whatsapp}</span></p>
+          <p><span className="text-slate-500">Unidade:</span> <span className="text-white font-medium">{parsed.unit}</span></p>
         </div>
       );
     }
@@ -141,16 +141,16 @@ export default function ValidationsTab({ isAdmin = false }: ValidationsTabProps)
       if (['referral', 'referral_deal', 'graduation', 'challenge_bang'].includes(action.type)) {
         // According to user request, do not show 'Nome' and 'WhatsApp' here, just 'Detalhes'.
         return (
-          <div className="mt-2 text-xs text-slate-400 bg-slate-800 p-3 rounded-lg border border-slate-700 space-y-1">
-            <p><span className="text-slate-500">Detalhes:</span> <span className="text-white font-medium">{details}</span></p>
+          <div className="mt-0.5 text-[10px] text-slate-400 bg-slate-950/40 p-1 px-2 rounded border border-slate-800/60 inline-block">
+            <span className="text-slate-500">Detalhes:</span> <span className="text-white font-medium">{details}</span>
           </div>
         );
       }
     }
 
     return (
-      <div className="mt-2 text-xs text-slate-400 bg-slate-800 p-2 rounded truncate">
-        Prova: {action.proof}
+      <div className="mt-0.5 text-[10px] text-slate-400 bg-slate-950/30 p-1 px-2 rounded truncate border border-slate-800/30 inline-block max-w-md">
+        <span className="text-slate-500">Prova:</span> <span className="text-white">{action.proof}</span>
       </div>
     );
   };
@@ -232,34 +232,38 @@ export default function ValidationsTab({ isAdmin = false }: ValidationsTabProps)
           Nenhuma validação pendente de alunos.
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-2.5 max-w-2xl">
           {actions.map((action) => (
-            <div key={action.id} className="bg-slate-900 border border-slate-700 rounded-lg p-4 flex items-center justify-between hover:border-slate-600 transition-colors">
-              <div className="flex items-center space-x-4">
-                <div className="bg-slate-800 p-3 rounded-full">
+            <div key={action.id} className="bg-slate-900 border border-slate-700/80 rounded-lg p-2.5 px-3.5 flex items-center gap-3 hover:border-slate-600 transition-colors">
+              <div className="flex items-center space-x-2.5 min-w-0 flex-1">
+                <div className="bg-slate-800 p-2 rounded-full shrink-0">
                   {getIcon(action.type)}
                 </div>
-                <div>
-                  <h4 className="font-semibold text-white">{getLabel(action.type)}</h4>
-                  <p className="text-sm text-slate-400">Aluno: <span className="text-orange-400">{action.user_name}</span></p>
-                  <p className="text-xs text-slate-500">{new Date(action.created_at).toLocaleString()}</p>
-                  {renderProof(action)}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-x-2">
+                    <h4 className="font-semibold text-white text-xs">{getLabel(action.type)}</h4>
+                    <span className="text-slate-500 text-[9px]">{new Date(action.created_at).toLocaleString()}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Aluno: <span className="text-orange-400 font-semibold">{action.user_name}</span></p>
+                  <div className="mt-0.5">{renderProof(action)}</div>
                 </div>
               </div>
-              <div className="flex space-x-2">
+              <div className="flex items-center space-x-1.5 shrink-0 ml-2 bg-slate-950/40 p-1 rounded-md border border-slate-800/60">
                 <button
                   onClick={() => handleValidate(action.id, false)}
-                  className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors"
-                  title="Rejeitar"
+                  className="px-2 py-1 text-[10px] bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-md transition-colors flex items-center gap-1 font-semibold"
+                  title="Recusar"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-3.5 h-3.5" />
+                  <span>Recusar</span>
                 </button>
                 <button
                   onClick={() => handleValidate(action.id, true)}
-                  className="p-2 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-lg transition-colors"
-                  title="Aprovar"
+                  className="px-2 py-1 text-[10px] bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-md transition-colors flex items-center gap-1 font-semibold"
+                  title="Aceitar"
                 >
-                  <Check className="w-5 h-5" />
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Aceitar</span>
                 </button>
               </div>
             </div>
