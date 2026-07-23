@@ -74,14 +74,14 @@ router.post('/:id/complete', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Challenge already won by someone else.' });
     }
 
-    // Check if user already submitted
+    // Check if user already submitted for THIS specific challenge
     const unlockedAt = await getSetting('challenges_unlocked_at', '1970-01-01T00:00:00.000Z');
 
     const { data: existing } = await supabase
       .from('actions')
       .select('id')
       .eq('user_id', userId)
-      .in('type', ['challenge_bang', 'challenge_completion'])
+      .eq('challenge_id', challengeId)
       .gt('created_at', unlockedAt)
       .in('status', ['pending', 'approved'])
       .maybeSingle();
@@ -143,35 +143,45 @@ router.get('/all', authenticate, authorize(['admin']), async (req, res) => {
   }
 });
 
-// Get Active Challenge
+// Get Active Challenges
 router.get('/active', authenticate, async (req, res) => {
   const now = new Date().toISOString();
   const userId = req.user.id;
   
-  // Get the challenge that is currently active or upcoming (closest to now)
-  const { data: challenge, error } = await supabase
+  // Get all challenges that are currently active or upcoming (where end_date > now)
+  const { data: challenges, error } = await supabase
     .from('challenges')
     .select('*')
     .gt('end_date', now)
-    .order('start_date', { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .order('start_date', { ascending: true });
 
   if (error) return res.status(500).json({ error: error.message });
-  if (!challenge) return res.json(null);
+  if (!challenges || challenges.length === 0) return res.json([]);
 
-  // Check if current user has already submitted
-  const { data: submission } = await supabase
+  const challengeIds = challenges.map(c => c.id);
+
+  // Check user submission status for each active challenge
+  const { data: submissions } = await supabase
     .from('actions')
-    .select('status')
+    .select('challenge_id, status')
     .eq('user_id', userId)
-    .eq('challenge_id', challenge.id)
-    .maybeSingle();
-  
-  res.json({
-    ...challenge,
-    user_status: submission ? submission.status : null
-  });
+    .in('challenge_id', challengeIds);
+
+  const submissionMap = new Map();
+  if (submissions) {
+    submissions.forEach(sub => {
+      if (sub.challenge_id) {
+        submissionMap.set(String(sub.challenge_id), sub.status);
+      }
+    });
+  }
+
+  const results = challenges.map(c => ({
+    ...c,
+    user_status: submissionMap.get(String(c.id)) || null
+  }));
+
+  res.json(results);
 });
 
 // End Challenge Early (Admin Only)

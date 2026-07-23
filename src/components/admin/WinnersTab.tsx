@@ -57,9 +57,14 @@ export default function WinnersTab() {
       const url = `/api/admin/unit-leaders?month=${monthVal}`;
       const res = await fetch(url, { credentials: 'include' });
       const data = await res.json();
-      setLeaders(data);
+      if (Array.isArray(data)) {
+        setLeaders(data);
+      } else {
+        setLeaders([]);
+      }
     } catch (err) {
       console.error('Error fetching unit leaders:', err);
+      setLeaders([]);
     } finally {
       setLoading(false);
     }

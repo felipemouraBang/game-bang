@@ -171,10 +171,15 @@ export default function PointsTab() {
       const res = await fetch('/api/users', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        setUsers(data.filter((u: any) => u.role === 'student'));
+        if (Array.isArray(data)) {
+          setUsers(data.filter((u: any) => u.role === 'student'));
+        } else {
+          setUsers([]);
+        }
       }
     } catch (err) {
       console.error('Fetch users error:', err);
+      setUsers([]);
     }
   };
 
@@ -208,6 +213,31 @@ export default function PointsTab() {
       }
     } catch (err) {
       console.error('Reset error:', err);
+      alert('Erro de conexão.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRecalculateMonthly = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/recalculate/monthly', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        showSuccess(data.message || 'Pontuação mensal recalculada com sucesso!');
+        fetchUsers();
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        alert(errorData.error || 'Erro ao recalcular pontuação mensal.');
+      }
+    } catch (err) {
+      console.error('Recalculate error:', err);
       alert('Erro de conexão.');
     } finally {
       setLoading(false);
@@ -299,8 +329,28 @@ export default function PointsTab() {
         </div>
       )}
 
-      {/* Global Resets */}
-      <div className="grid md:grid-cols-2 gap-8">
+      {/* Global Resets & Recalculate */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <RefreshCw className="w-32 h-32 text-emerald-500" />
+          </div>
+          <h3 className="text-xl font-bold text-white mb-2 flex items-center">
+            <RefreshCw className="w-5 h-5 mr-2 text-emerald-500" />
+            Recalcular Mês Atual
+          </h3>
+          <p className="text-slate-400 mb-6 text-sm">
+            Recalcula e sincroniza os pontos mensais com base APENAS nas ações aprovadas do mês 7 (Julho/2026).
+          </p>
+          <button
+            onClick={handleRecalculateMonthly}
+            disabled={loading}
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center"
+          >
+            {loading ? 'Sincronizando...' : 'Recalcular Pontos do Mês'}
+          </button>
+        </div>
+
         <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <RefreshCw className="w-32 h-32 text-blue-500" />

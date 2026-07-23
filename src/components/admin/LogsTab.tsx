@@ -13,9 +13,14 @@ export default function LogsTab() {
     try {
       const res = await fetch('/api/admin/logs', { credentials: 'include' });
       const data = await res.json();
-      setLogs(data);
+      if (Array.isArray(data)) {
+        setLogs(data);
+      } else {
+        setLogs([]);
+      }
     } catch (err) {
       console.error(err);
+      setLogs([]);
     } finally {
       setLoading(false);
     }

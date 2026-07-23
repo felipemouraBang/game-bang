@@ -22,9 +22,17 @@ export default function UsersTab() {
     try {
       const res = await fetch('/api/users', { credentials: 'include' });
       const data = await res.json();
-      setUsers(data);
+      if (Array.isArray(data)) {
+        setUsers(data);
+        setError(null);
+      } else {
+        setUsers([]);
+        setError(data?.error || 'Erro ao carregar usuários');
+      }
     } catch (err) {
       console.error('Failed to fetch users', err);
+      setUsers([]);
+      setError('Erro de conexão ao carregar usuários');
     } finally {
       setLoading(false);
     }
@@ -49,10 +57,10 @@ export default function UsersTab() {
     }
   };
 
-  const filteredUsers = users.filter(u => 
-    u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.login.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = Array.isArray(users) ? users.filter(u => 
+    (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (u.login || '').toLowerCase().includes(searchTerm.toLowerCase())
+  ) : [];
 
   return (
     <div>

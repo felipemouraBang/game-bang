@@ -88,6 +88,59 @@ router.post('/reset/monthly', authenticate, authorize(['admin']), async (req, re
   }
 });
 
+// Recalculate Monthly Points (Admin Only) - Syncs score_monthly for all students based ONLY on current month's approved actions
+router.post('/recalculate/monthly', authenticate, authorize(['admin']), async (req, res) => {
+  try {
+    const now = new Date();
+    const brTime = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+    const year = brTime.getUTCFullYear();
+    const monthNum = brTime.getUTCMonth() + 1;
+    const month = String(monthNum).padStart(2, '0');
+
+    const monthStart = `${year}-${month}-01T00:00:00.000Z`;
+    const nextMonthNum = monthNum === 12 ? 1 : monthNum + 1;
+    const nextYearNum = monthNum === 12 ? year + 1 : year;
+    const monthEnd = `${nextYearNum}-${String(nextMonthNum).padStart(2, '0')}-01T00:00:00.000Z`;
+
+    const { data: students, error: studentsError } = await supabase
+      .from('users')
+      .select('id, name, score_monthly')
+      .eq('role', 'student');
+
+    if (studentsError) throw studentsError;
+
+    let updatedCount = 0;
+    if (students) {
+      for (const student of students) {
+        const { data: actions, error: actionsError } = await supabase
+          .from('actions')
+          .select('points')
+          .eq('user_id', student.id)
+          .eq('status', 'approved')
+          .gte('created_at', monthStart)
+          .lt('created_at', monthEnd);
+
+        if (actionsError) continue;
+
+        const currentMonthPoints = actions ? actions.reduce((sum, act) => sum + (act.points || 0), 0) : 0;
+
+        await supabase
+          .from('users')
+          .update({ score_monthly: currentMonthPoints })
+          .eq('id', student.id);
+
+        updatedCount++;
+      }
+    }
+
+    logAction(req.user.id, 'RECALCULATE_MONTHLY', `Recalculated monthly points for ${updatedCount} students for month ${year}-${month}`);
+    res.json({ message: `Pontuação mensal de ${updatedCount} alunos sincronizada com sucesso para o mês ${month}/${year}!`, month: `${year}-${month}` });
+  } catch (err: any) {
+    console.error('Recalculate monthly error:', err);
+    res.status(500).json({ error: err?.message || 'Falha ao recalcular pontuação mensal' });
+  }
+});
+
 // Reset Annual Points (Admin Only)
 router.post('/reset/annual', authenticate, authorize(['admin']), async (req, res) => {
   const { userId } = req.body;

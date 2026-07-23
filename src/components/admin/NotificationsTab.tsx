@@ -25,11 +25,16 @@ export default function NotificationsTab() {
     try {
       const res = await fetch('/api/users', { credentials: 'include' });
       const data = await res.json();
-      const students = data.filter(u => u.role === 'student');
-      students.sort((a, b) => a.name.localeCompare(b.name));
-      setUsers(students);
+      if (Array.isArray(data)) {
+        const students = data.filter(u => u.role === 'student');
+        students.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        setUsers(students);
+      } else {
+        setUsers([]);
+      }
     } catch (err) {
       console.error(err);
+      setUsers([]);
     }
   };
 

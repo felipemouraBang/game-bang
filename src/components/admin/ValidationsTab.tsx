@@ -65,8 +65,12 @@ export default function ValidationsTab({ isAdmin = false }: ValidationsTabProps)
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Falha ao buscar');
       setActions(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error('Failed to fetch actions', err);
+    } catch (err: any) {
+      if (err?.message === 'Not authenticated' || err?.message?.includes('authenticated')) {
+        console.warn('Failed to fetch actions:', err?.message || err);
+      } else {
+        console.error('Failed to fetch actions', err);
+      }
     } finally {
       setLoading(false);
     }
