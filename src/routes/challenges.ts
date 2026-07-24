@@ -1,25 +1,56 @@
 import express from 'express';
 import { supabase } from '../db/supabase.js';
 import { authenticate, authorize, logAction } from '../middleware/auth.js';
-import { getSetting } from '../db/settingsManager.js';
+import { getSetting, setSetting } from '../db/settingsManager.js';
 
 const router = express.Router();
 
+// Helper to parse max_winners and clean description
+export function parseChallengeMetadata(challenge: any) {
+  if (!challenge) return challenge;
+  let maxWinners: number | null = null;
+  let description = challenge.description || '';
+
+  const match = description.match(/\[MAX_WINNERS:(.*?)\]/);
+  if (match) {
+    const val = match[1].trim();
+    if (val !== 'unlimited' && val !== 'all' && val !== 'null') {
+      const parsed = parseInt(val, 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        maxWinners = parsed;
+      }
+    }
+    description = description.replace(/\n?\[MAX_WINNERS:.*?\]/g, '').trim();
+  }
+
+  return {
+    ...challenge,
+    description,
+    max_winners: maxWinners
+  };
+}
+
 // Create Challenge (Admin Only)
 router.post('/', authenticate, authorize(['admin']), async (req, res) => {
-  const { title, description, start_date, end_date, points } = req.body;
+  const { title, description, start_date, end_date, points, max_winners } = req.body;
   const created_by = req.user.id;
 
   if (!title || !start_date || !end_date) {
     return res.status(400).json({ error: 'Title, start date, and end date are required.' });
   }
 
+  const maxWinnersVal = (max_winners !== null && max_winners !== undefined && max_winners !== '' && max_winners !== 'unlimited' && max_winners !== 'all') 
+    ? parseInt(String(max_winners), 10) 
+    : null;
+
+  const formattedDescription = `${description || ''}\n[MAX_WINNERS:${maxWinnersVal !== null && !isNaN(maxWinnersVal) ? maxWinnersVal : 'unlimited'}]`.trim();
+
   try {
     const { data: challenge, error } = await supabase
       .from('challenges')
       .insert({
         title,
-        description,
+        description: formattedDescription,
         start_date,
         end_date,
         points: points || 0,
@@ -29,6 +60,9 @@ router.post('/', authenticate, authorize(['admin']), async (req, res) => {
       .single();
 
     if (error) throw error;
+
+    // Save in settings as backup
+    await setSetting(`challenge_max_winners_${challenge.id}`, maxWinnersVal !== null && !isNaN(maxWinnersVal) ? String(maxWinnersVal) : 'unlimited');
 
     // Notify all users
     const { data: users } = await supabase.from('users').select('id');
@@ -51,6 +85,50 @@ router.post('/', authenticate, authorize(['admin']), async (req, res) => {
   }
 });
 
+// Get Challenge Submissions (Admin / Receptionist / Restricted Admin)
+router.get('/submissions', authenticate, authorize(['admin', 'receptionist', 'restricted_admin']), async (req, res) => {
+  try {
+    const { data: actions, error } = await supabase
+      .from('actions')
+      .select(`
+        *,
+        users:user_id (id, name, nickname, unit, photo)
+      `)
+      .in('type', ['challenge_completion', 'challenge_bang'])
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Get all challenges for mapping title
+    const { data: challenges } = await supabase.from('challenges').select('id, title, points, description');
+    const challengeMap = new Map();
+    if (challenges) {
+      challenges.forEach(c => {
+        challengeMap.set(String(c.id), parseChallengeMetadata(c));
+      });
+    }
+
+    const formatted = (actions || []).map(a => {
+      const userObj = a.users || {};
+      const challengeObj = a.challenge_id ? challengeMap.get(String(a.challenge_id)) : null;
+      return {
+        ...a,
+        user_name: userObj.name || 'Aluno',
+        user_nickname: userObj.nickname || '',
+        user_unit: userObj.unit || 'Sem Unidade',
+        user_photo: userObj.photo || null,
+        challenge_title: challengeObj ? challengeObj.title : 'Desafio',
+        challenge_max_winners: challengeObj ? challengeObj.max_winners : null
+      };
+    });
+
+    res.json(formatted);
+  } catch (err: any) {
+    console.error('Failed to fetch challenge submissions:', err);
+    res.status(500).json({ error: 'Failed to fetch challenge submissions.' });
+  }
+});
+
 // Complete Challenge (Student)
 router.post('/:id/complete', authenticate, async (req, res) => {
   const challengeId = req.params.id;
@@ -62,24 +140,22 @@ router.post('/:id/complete', authenticate, async (req, res) => {
   }
 
   try {
-    const { data: challenge, error: challengeError } = await supabase
+    const { data: rawChallenge, error: challengeError } = await supabase
       .from('challenges')
       .select('*')
       .eq('id', challengeId)
       .single();
 
-    if (challengeError || !challenge) return res.status(404).json({ error: 'Challenge not found.' });
+    if (challengeError || !rawChallenge) return res.status(404).json({ error: 'Challenge not found.' });
 
-    if (challenge.winner_id) {
-      return res.status(400).json({ error: 'Challenge already won by someone else.' });
-    }
+    const challenge = parseChallengeMetadata(rawChallenge);
 
     // Check if user already submitted for THIS specific challenge
     const unlockedAt = await getSetting('challenges_unlocked_at', '1970-01-01T00:00:00.000Z');
 
     const { data: existing } = await supabase
       .from('actions')
-      .select('id')
+      .select('id, status')
       .eq('user_id', userId)
       .eq('challenge_id', challengeId)
       .gt('created_at', unlockedAt)
@@ -88,7 +164,9 @@ router.post('/:id/complete', authenticate, async (req, res) => {
 
     if (existing) {
       return res.status(400).json({ 
-        error: 'Você já enviou um desafio para validação. Aguarde a liberação da administração para enviar novamente.' 
+        error: existing.status === 'approved' 
+          ? 'Você já concluiu este desafio e sua participação foi aprovada!' 
+          : 'Sua resposta já foi enviada e está aguardando aprovação da administração.' 
       });
     }
 
@@ -98,7 +176,7 @@ router.post('/:id/complete', authenticate, async (req, res) => {
 
     const proof = JSON.stringify({ fullName, whatsapp, unit });
 
-    // Create action
+    // Create action in PENDING state
     await supabase.from('actions').insert({
       user_id: userId,
       type: 'challenge_completion',
@@ -111,7 +189,7 @@ router.post('/:id/complete', authenticate, async (req, res) => {
     // Notify Admins
     const { data: admins } = await supabase.from('users').select('id').eq('role', 'admin');
     if (admins && admins.length > 0) {
-      const adminMsg = `Aluno ${userName} completou o desafio "${challenge.title}"! Verifique para validar.`;
+      const adminMsg = `Aluno ${userName} enviou o desafio "${challenge.title}" para validação!`;
       const notifications = admins.map(a => ({
         user_id: a.id,
         message: adminMsg,
@@ -120,7 +198,7 @@ router.post('/:id/complete', authenticate, async (req, res) => {
       await supabase.from('notifications').insert(notifications);
     }
 
-    res.json({ message: 'Challenge completion submitted for review.' });
+    res.json({ message: 'Desafio enviado com sucesso para a fila de aprovação da administração!' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to submit challenge completion.' });
@@ -136,7 +214,9 @@ router.get('/all', authenticate, authorize(['admin']), async (req, res) => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    res.json(challenges);
+    
+    const formatted = (challenges || []).map(parseChallengeMetadata);
+    res.json(formatted);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch challenges.' });
@@ -176,10 +256,13 @@ router.get('/active', authenticate, async (req, res) => {
     });
   }
 
-  const results = challenges.map(c => ({
-    ...c,
-    user_status: submissionMap.get(String(c.id)) || null
-  }));
+  const results = challenges.map(c => {
+    const parsed = parseChallengeMetadata(c);
+    return {
+      ...parsed,
+      user_status: submissionMap.get(String(parsed.id)) || null
+    };
+  });
 
   res.json(results);
 });

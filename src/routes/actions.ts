@@ -246,30 +246,47 @@ router.post('/:id/validate', authenticate, authorize(['admin', 'receptionist', '
 
   try {
     // Special handling for challenge completion
-    if (action.type === 'challenge_completion' && action.challenge_id) {
-      const { data: challenge } = await supabase
+    if ((action.type === 'challenge_completion' || action.type === 'challenge_bang') && action.challenge_id) {
+      const { data: rawChallenge } = await supabase
         .from('challenges')
         .select('*')
         .eq('id', action.challenge_id)
         .single();
       
-      if (!challenge) {
-        return res.status(404).json({ error: 'Challenge not found' });
+      if (rawChallenge) {
+        // Parse max_winners
+        let maxWinners: number | null = null;
+        let desc = rawChallenge.description || '';
+        const match = desc.match(/\[MAX_WINNERS:(.*?)\]/);
+        if (match) {
+          const val = match[1].trim();
+          if (val !== 'unlimited' && val !== 'all' && val !== 'null') {
+            const parsed = parseInt(val, 10);
+            if (!isNaN(parsed) && parsed > 0) maxWinners = parsed;
+          }
+        }
+
+        if (maxWinners !== null) {
+          const { count: approvedCount } = await supabase
+            .from('actions')
+            .select('id', { count: 'exact', head: true })
+            .eq('challenge_id', action.challenge_id)
+            .eq('status', 'approved');
+
+          if (approvedCount !== null && approvedCount >= maxWinners) {
+            return res.status(400).json({ 
+              error: `O limite máximo de ${maxWinners} vencedor(es) para este desafio já foi atingido.` 
+            });
+          }
+        }
+
+        // Notify Winner
+        await supabase.from('notifications').insert({
+          user_id: action.user_id,
+          message: `Parabéns! Sua participação no desafio "${rawChallenge.title}" foi APROVADA e você ganhou ${action.points} pontos!`,
+          type: 'challenge_won'
+        });
       }
-
-      if (challenge.winner_id) {
-        return res.status(400).json({ error: 'Challenge already won by someone else.' });
-      }
-
-      // Mark challenge as won
-      await supabase.from('challenges').update({ winner_id: action.user_id }).eq('id', action.challenge_id);
-
-      // Notify Winner
-      await supabase.from('notifications').insert({
-        user_id: action.user_id,
-        message: `Parabéns! Você venceu o desafio "${challenge.title}" e ganhou ${action.points} pontos!`,
-        type: 'challenge_won'
-      });
     }
 
     const points = action.points;

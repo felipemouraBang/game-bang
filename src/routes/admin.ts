@@ -506,4 +506,81 @@ router.post('/unlock', authenticate, authorize(['admin', 'restricted_admin']), a
   }
 });
 
+// Revert Challenge Auto Approvals & Recalculate Points (Admin Only)
+router.post('/revert-challenge-auto-approvals', authenticate, authorize(['admin']), async (req, res) => {
+  try {
+    const { data: approvedChallengeActions } = await supabase
+      .from('actions')
+      .select('id')
+      .in('type', ['challenge_completion', 'challenge_bang'])
+      .eq('status', 'approved');
+
+    let revertedCount = 0;
+    if (approvedChallengeActions && approvedChallengeActions.length > 0) {
+      const actionIds = approvedChallengeActions.map(a => a.id);
+      revertedCount = actionIds.length;
+
+      await supabase
+        .from('actions')
+        .update({
+          status: 'pending',
+          validated_at: null,
+          validated_by: null
+        })
+        .in('id', actionIds);
+    }
+
+    // Clear winner_id from challenges
+    await supabase.from('challenges').update({ winner_id: null }).not('winner_id', 'is', null);
+
+    // Recalculate student scores for current month and year
+    const now = new Date();
+    const brTime = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+    const year = brTime.getUTCFullYear();
+    const monthNum = brTime.getUTCMonth() + 1;
+    const month = String(monthNum).padStart(2, '0');
+
+    const monthStart = `${year}-${month}-01T00:00:00.000Z`;
+    const nextMonthNum = monthNum === 12 ? 1 : monthNum + 1;
+    const nextYearNum = monthNum === 12 ? year + 1 : year;
+    const monthEnd = `${nextYearNum}-${String(nextMonthNum).padStart(2, '0')}-01T00:00:00.000Z`;
+    const yearStart = `${year}-01-01T00:00:00.000Z`;
+
+    const { data: studentsList } = await supabase.from('users').select('id').eq('role', 'student');
+    if (studentsList) {
+      for (const st of studentsList) {
+        const { data: mActs } = await supabase
+          .from('actions')
+          .select('points')
+          .eq('user_id', st.id)
+          .eq('status', 'approved')
+          .gte('created_at', monthStart)
+          .lt('created_at', monthEnd);
+
+        const mPoints = mActs ? mActs.reduce((sum, act) => sum + (act.points || 0), 0) : 0;
+
+        const { data: aActs } = await supabase
+          .from('actions')
+          .select('points')
+          .eq('user_id', st.id)
+          .eq('status', 'approved')
+          .gte('created_at', yearStart);
+
+        const aPoints = aActs ? aActs.reduce((sum, act) => sum + (act.points || 0), 0) : 0;
+
+        await supabase
+          .from('users')
+          .update({ score_monthly: mPoints, score_annual: aPoints })
+          .eq('id', st.id);
+      }
+    }
+
+    logAction(req.user.id, 'REVERT_CHALLENGE_AUTO_APPROVALS', `Reverted ${revertedCount} challenge actions to pending and recalculated scores`);
+    res.json({ message: `${revertedCount} desafios auto-aprovados foram movidos de volta para a fila de pendentes e os pontos foram corrigidos!` });
+  } catch (err: any) {
+    console.error('Error reverting challenge auto approvals:', err);
+    res.status(500).json({ error: err?.message || 'Erro ao reverter aprovações automáticas de desafios' });
+  }
+});
+
 export default router;

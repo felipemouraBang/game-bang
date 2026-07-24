@@ -218,6 +218,62 @@ export async function initSupabaseDb() {
       }
       console.log('[Init_July_Recalculate] Month 7 score verification and recalculation complete.');
     }
+
+    // Migration: Revert all auto-approved challenge actions to 'pending' so Master Admin can review them, and recalculate scores
+    console.log('[Init_Revert_Challenges] Reverting auto-approved challenge actions to pending and recalculating student scores...');
+    const { data: approvedChallengeActions } = await supabase
+      .from('actions')
+      .select('id')
+      .in('type', ['challenge_completion', 'challenge_bang'])
+      .eq('status', 'approved');
+
+    if (approvedChallengeActions && approvedChallengeActions.length > 0) {
+      const actionIds = approvedChallengeActions.map(a => a.id);
+      console.log(`[Init_Revert_Challenges] Found ${actionIds.length} approved challenge actions to revert to pending.`);
+
+      await supabase
+        .from('actions')
+        .update({
+          status: 'pending',
+          validated_at: null,
+          validated_by: null
+        })
+        .in('id', actionIds);
+
+      // Clear winner_id from challenges table
+      await supabase.from('challenges').update({ winner_id: null }).not('winner_id', 'is', null);
+
+      // Recalculate monthly scores for Month 7 (July 2026) for all students
+      const { data: studentsList } = await supabase.from('users').select('id, name').eq('role', 'student');
+      if (studentsList) {
+        for (const st of studentsList) {
+          const { data: mActs } = await supabase
+            .from('actions')
+            .select('points')
+            .eq('user_id', st.id)
+            .eq('status', 'approved')
+            .gte('created_at', '2026-07-01T00:00:00.000Z')
+            .lt('created_at', '2026-08-01T00:00:00.000Z');
+
+          const mPoints = mActs ? mActs.reduce((sum, act) => sum + (act.points || 0), 0) : 0;
+
+          const { data: aActs } = await supabase
+            .from('actions')
+            .select('points')
+            .eq('user_id', st.id)
+            .eq('status', 'approved')
+            .gte('created_at', '2026-01-01T00:00:00.000Z');
+
+          const aPoints = aActs ? aActs.reduce((sum, act) => sum + (act.points || 0), 0) : 0;
+
+          await supabase
+            .from('users')
+            .update({ score_monthly: mPoints, score_annual: aPoints })
+            .eq('id', st.id);
+        }
+      }
+      console.log('[Init_Revert_Challenges] Successfully reverted challenge actions to pending and recalculated all student scores.');
+    }
   } catch (error) {
     console.error('Error initializing Supabase DB defaults:', error);
   }
