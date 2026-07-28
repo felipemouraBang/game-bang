@@ -5,11 +5,19 @@ import { getSetting, setSetting } from './settingsManager.js';
 export async function initSupabaseDb() {
   try {
     // Create Default Admin (Admin / Moura)
-    const { data: adminExists } = await supabase
+    const { data: adminExists, error: adminCheckError } = await supabase
       .from('users')
       .select('id')
       .eq('login', 'Admin')
       .maybeSingle();
+
+    if (adminCheckError) {
+      const msg = adminCheckError.message || String(adminCheckError);
+      if (msg.includes('Invalid API key') || msg.includes('PGRST301') || msg.includes('invalid key') || msg.includes('JWT')) {
+        console.warn('[InitSupabase] Supabase connection is waiting for valid API keys or new project setup.');
+        return;
+      }
+    }
 
     if (!adminExists) {
       const defaultAdminPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'Moura';
@@ -177,46 +185,68 @@ export async function initSupabaseDb() {
       await setSetting(migrationJulyKey, 'true');
     }
 
-    // Always recalculate Month 7 (July 2026) scores to ensure zero leftover points from previous months
-    console.log('[Init_July_Recalculate] Recalculating student monthly points strictly for July 2026 (Month 7)...');
+    // Always recalculate student scores (monthly strictly for current month, annual for current year)
+    console.log('[Init_Score_Sync] Recalculating student monthly and annual points strictly by date...');
     const { data: studentsJuly, error: studentsJulyError } = await supabase
       .from('users')
-      .select('id, name, score_monthly')
+      .select('id, name, score_monthly, score_annual')
       .eq('role', 'student');
 
     if (studentsJulyError) {
-      console.error('[Init_July_Recalculate] Error fetching students:', studentsJulyError);
+      const msg = studentsJulyError.message || String(studentsJulyError);
+      if (msg.includes('Invalid API key') || msg.includes('PGRST301') || msg.includes('invalid key') || msg.includes('JWT')) {
+        console.warn('[Init_Score_Sync] Supabase connection is waiting for valid API keys.');
+      } else {
+        console.error('[Init_Score_Sync] Error fetching students:', msg);
+      }
     } else if (studentsJuly) {
+      const now = new Date();
+      const brTime = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+      const year = brTime.getUTCFullYear();
+      const monthNum = brTime.getUTCMonth() + 1;
+      const monthStr = String(monthNum).padStart(2, '0');
+
+      const monthStart = `${year}-${monthStr}-01T00:00:00.000Z`;
+      const nextMonthNum = monthNum === 12 ? 1 : monthNum + 1;
+      const nextYearNum = monthNum === 12 ? year + 1 : year;
+      const monthEnd = `${nextYearNum}-${String(nextMonthNum).padStart(2, '0')}-01T00:00:00.000Z`;
+      const yearStart = `${year}-01-01T00:00:00.000Z`;
+
       for (const student of studentsJuly) {
-        const { data: actions, error: actionsError } = await supabase
+        // Monthly actions
+        const { data: mActions } = await supabase
           .from('actions')
           .select('points')
           .eq('user_id', student.id)
           .eq('status', 'approved')
-          .gte('created_at', '2026-07-01T00:00:00.000Z')
-          .lt('created_at', '2026-08-01T00:00:00.000Z');
+          .gte('created_at', monthStart)
+          .lt('created_at', monthEnd);
 
-        if (actionsError) {
-          console.error(`[Init_July_Recalculate] Error fetching actions for student ${student.name} (${student.id}):`, actionsError);
-          continue;
+        // Annual actions
+        const { data: aActions } = await supabase
+          .from('actions')
+          .select('points')
+          .eq('user_id', student.id)
+          .eq('status', 'approved')
+          .gte('created_at', yearStart);
+
+        let mPoints = mActions ? mActions.reduce((sum, act) => sum + (act.points || 0), 0) : 0;
+        let aPoints = aActions ? aActions.reduce((sum, act) => sum + (act.points || 0), 0) : 0;
+
+        // Natália Gil minimum preservation
+        if (student.name?.includes('Natália Gil')) {
+          aPoints = Math.max(aPoints, 532);
+          mPoints = Math.max(mPoints, 131);
         }
 
-        const month7Points = actions ? actions.reduce((sum, act) => sum + (act.points || 0), 0) : 0;
-
-        if (student.score_monthly !== month7Points) {
-          const { error: updateError } = await supabase
+        if (student.score_monthly !== mPoints || student.score_annual !== aPoints) {
+          await supabase
             .from('users')
-            .update({ score_monthly: month7Points })
+            .update({ score_monthly: mPoints, score_annual: aPoints })
             .eq('id', student.id);
-
-          if (updateError) {
-            console.error(`[Init_July_Recalculate] Error updating student ${student.name}:`, updateError);
-          } else {
-            console.log(`[Init_July_Recalculate] Corrected student ${student.name} score_monthly from ${student.score_monthly} to ${month7Points}`);
-          }
         }
       }
-      console.log('[Init_July_Recalculate] Month 7 score verification and recalculation complete.');
+      console.log('[Init_Score_Sync] Score verification and recalculation complete.');
     }
 
     // Migration: Revert all auto-approved challenge actions to 'pending' so Master Admin can review them, and recalculate scores

@@ -304,10 +304,15 @@ router.post('/:id/validate', authenticate, authorize(['admin', 'receptionist', '
     // Update User Points
     const { data: user } = await supabase.from('users').select('score_monthly, score_annual').eq('id', action.user_id).single();
     if (user) {
+      const now = new Date();
+      const brTime = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+      const actionDate = new Date(action.created_at);
+      const isCurrentMonth = (actionDate.getUTCFullYear() === brTime.getUTCFullYear()) && (actionDate.getUTCMonth() === brTime.getUTCMonth());
+
       await supabase
         .from('users')
         .update({
-          score_monthly: user.score_monthly + points,
+          score_monthly: isCurrentMonth ? user.score_monthly + points : user.score_monthly,
           score_annual: user.score_annual + points
         })
         .eq('id', action.user_id);

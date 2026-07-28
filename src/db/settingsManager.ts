@@ -42,6 +42,7 @@ let settingsTableMissingLogged = false;
 function handleSupabaseError(action: string, keyOrKeys: string | string[], err: any) {
   const errMsg = err?.message || String(err);
   const isTableMissing = errMsg.includes("Could not find the table") || errMsg.includes("settings' in the schema cache");
+  const isInvalidKey = errMsg.includes("Invalid API key") || errMsg.includes("invalid key") || errMsg.includes("JWT") || errMsg.includes("PGRST301");
 
   if (isTableMissing) {
     if (!settingsTableMissingLogged) {
@@ -49,7 +50,14 @@ function handleSupabaseError(action: string, keyOrKeys: string | string[], err: 
       console.info(
         `[SettingsManager] Persistent settings table 'settings' is not yet created in Supabase.\n` +
         `-> The system is automatically using the local filesystem fallback: "${SETTINGS_FILE_PATH}".\n` +
-        `-> Tip: Run the SQL DDL queries from "/src/utils/supabase_migration.sql" on your Supabase dashboard SQL editor to enable DB-backed settings.`
+        `-> Tip: Run the SQL DDL queries from "/supabase_migration.sql" on your Supabase dashboard SQL editor.`
+      );
+    }
+  } else if (isInvalidKey) {
+    if (!settingsTableMissingLogged) {
+      settingsTableMissingLogged = true;
+      console.info(
+        `[SettingsManager] Supabase API key is pending configuration or invalid. Using local filesystem store: "${SETTINGS_FILE_PATH}".`
       );
     }
   } else {
