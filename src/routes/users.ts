@@ -9,44 +9,54 @@ const router = express.Router();
 
 // Get all users (Admin/Receptionist)
 router.get('/', authenticate, authorize(['admin', 'receptionist', 'restricted_admin']), async (req, res) => {
-  const { data: currentUser } = await supabase.from('users').select('role, nickname').eq('id', req.user.id).single();
+  try {
+    const { data: currentUser } = await supabase.from('users').select('role, nickname').eq('id', req.user.id).single();
 
-  let query = supabase
-    .from('users')
-    .select('id, name, login, role, email, photo, nickname, score_monthly, score_annual, is_active, unit');
+    let query = supabase
+      .from('users')
+      .select('id, name, login, role, email, photo, nickname, score_monthly, score_annual, is_active, unit');
 
-  if (currentUser?.role === 'receptionist') {
-    const units = getReceptionistUnits(currentUser.nickname);
-    if (units.length > 0) {
-      query = query.in('unit', units);
+    if (currentUser?.role === 'receptionist') {
+      const units = getReceptionistUnits(currentUser.nickname || '');
+      if (units.length > 0) {
+        query = query.in('unit', units);
+      }
     }
-  }
 
-  const { data: users, error } = await query;
-  
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(users);
+    const { data: users, error } = await query;
+    
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(users || []);
+  } catch (err: any) {
+    console.error('Error fetching users:', err);
+    res.status(500).json({ error: err?.message || 'Error fetching users' });
+  }
 });
 
 // Get Notifications (Self)
 router.get('/notifications', authenticate, async (req, res) => {
-  if (req.user.role === 'student') {
-    try {
-      checkAndSendDailyMotivation(req.user.id);
-    } catch (e) {
-      console.error('Error sending daily motivation:', e);
+  try {
+    if (req.user.role === 'student') {
+      try {
+        checkAndSendDailyMotivation(req.user.id);
+      } catch (e) {
+        console.error('Error sending daily motivation:', e);
+      }
     }
+
+    const { data: notifications, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(notifications || []);
+  } catch (err: any) {
+    console.error('Error fetching notifications:', err);
+    res.status(500).json({ error: err?.message || 'Error fetching notifications' });
   }
-
-  const { data: notifications, error } = await supabase
-    .from('notifications')
-    .select('*')
-    .eq('user_id', req.user.id)
-    .order('created_at', { ascending: false })
-    .limit(20);
-
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(notifications);
 });
 
 // Mark Notification as Read (Self)

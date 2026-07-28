@@ -24,6 +24,10 @@ export default function NotificationsTab() {
   const fetchUsers = async () => {
     try {
       const res = await fetch('/api/users', { credentials: 'include' });
+      if (!res.ok) {
+        setUsers([]);
+        return;
+      }
       const data = await res.json();
       if (Array.isArray(data)) {
         const students = data.filter(u => u.role === 'student');

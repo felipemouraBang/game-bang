@@ -182,6 +182,20 @@ async function startServer() {
   app.use('/api/stats', statsRoutes);
   app.use('/api/challenges', challengeRoutes);
 
+  // Fallback 404 for unhandled API endpoints (prevents returning Vite HTML index.html)
+  app.use('/api/*', (req, res) => {
+    res.status(404).json({ error: `Rota de API não encontrada: ${req.originalUrl}` });
+  });
+
+  // Global error handler for API routes
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (req.originalUrl.startsWith('/api') || req.path.startsWith('/api')) {
+      console.error('[API Exception]:', err);
+      return res.status(err.status || 500).json({ error: err.message || 'Erro interno no servidor' });
+    }
+    next(err);
+  });
+
   // Serve static files from uploads directory (if needed)
   const uploadsDir = path.join(process.cwd(), 'uploads');
   if (!fs.existsSync(uploadsDir)) {

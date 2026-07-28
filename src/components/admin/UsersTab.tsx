@@ -21,6 +21,12 @@ export default function UsersTab() {
   const fetchUsers = async () => {
     try {
       const res = await fetch('/api/users', { credentials: 'include' });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        setUsers([]);
+        setError(errData.error || `Erro (${res.status}) ao carregar usuários`);
+        return;
+      }
       const data = await res.json();
       if (Array.isArray(data)) {
         setUsers(data);

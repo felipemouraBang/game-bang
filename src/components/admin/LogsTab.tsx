@@ -12,6 +12,10 @@ export default function LogsTab() {
   const fetchLogs = async () => {
     try {
       const res = await fetch('/api/admin/logs', { credentials: 'include' });
+      if (!res.ok) {
+        setLogs([]);
+        return;
+      }
       const data = await res.json();
       if (Array.isArray(data)) {
         setLogs(data);
