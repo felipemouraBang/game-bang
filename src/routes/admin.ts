@@ -345,40 +345,110 @@ router.get('/unit-leaders', authenticate, authorize(['admin', 'restricted_admin'
         .eq('period_type', 'month')
         .eq('period_identifier', month);
 
-      if (hofError) throw hofError;
+      if (!hofError && records && records.length > 0) {
+        // Get all unique units to show full list even if some units had no winners
+        const { data: studentsData } = await supabase
+          .from('users')
+          .select('unit')
+          .eq('role', 'student')
+          .eq('is_active', true);
 
-      // Get all unique units to show full list even if some units had no winners
-      const { data: studentsData } = await supabase
-        .from('users')
-        .select('unit')
-        .eq('role', 'student')
-        .eq('is_active', true);
+        const uniqueUnits = Array.from(new Set((studentsData || []).map(u => u.unit).filter(Boolean)));
+        if (uniqueUnits.length === 0) {
+          uniqueUnits.push('Sem Unidade');
+        }
 
-      const uniqueUnits = Array.from(new Set((studentsData || []).map(u => u.unit).filter(Boolean)));
-      if (uniqueUnits.length === 0) {
-        uniqueUnits.push('Sem Unidade');
+        const leadersByUnit: Record<string, any> = {};
+        uniqueUnits.forEach(u => {
+          leadersByUnit[u] = null;
+        });
+
+        records?.forEach((rec: any) => {
+          const user = rec.users;
+          if (user) {
+            const unit = user.unit || 'Sem Unidade';
+            leadersByUnit[unit] = {
+              id: user.id,
+              name: user.name,
+              score: rec.score,
+              email: user.email,
+              photo: user.photo
+            };
+          }
+        });
+
+        const result = Object.keys(leadersByUnit).sort().map(unitName => ({
+          unit: unitName,
+          monthlyLeader: leadersByUnit[unitName] || {
+            id: null,
+            name: '',
+            score: 0,
+            email: '',
+            photo: ''
+          },
+          annualLeader: {
+            id: null,
+            name: '',
+            score: 0,
+            email: '',
+            photo: ''
+          }
+        }));
+
+        return res.json(result);
       }
 
-      const leadersByUnit: Record<string, any> = {};
-      uniqueUnits.forEach(u => {
-        leadersByUnit[u] = null;
-      });
+      // If hall_of_fame is empty or missing for this month, calculate directly from approved actions!
+      const [mYearStr, mMonthStr] = (month as string).split('-');
+      const mYear = parseInt(mYearStr, 10);
+      const mMonth = parseInt(mMonthStr, 10);
 
-      records?.forEach((rec: any) => {
-        const user = rec.users;
-        if (user) {
-          const unit = user.unit || 'Sem Unidade';
-          leadersByUnit[unit] = {
-            id: user.id,
-            name: user.name,
-            score: rec.score,
-            email: user.email,
-            photo: user.photo
-          };
+      const mStart = `${mYearStr}-${mMonthStr}-01T00:00:00.000Z`;
+      const nextM = mMonth === 12 ? 1 : mMonth + 1;
+      const nextY = mMonth === 12 ? mYear + 1 : mYear;
+      const mEnd = `${nextY}-${String(nextM).padStart(2, '0')}-01T00:00:00.000Z`;
+
+      const { data: monthActions } = await supabase
+        .from('actions')
+        .select('user_id, points')
+        .eq('status', 'approved')
+        .gte('created_at', mStart)
+        .lt('created_at', mEnd);
+
+      const userMonthPts: Record<string, number> = {};
+      monthActions?.forEach(a => {
+        if (a.user_id) {
+          userMonthPts[a.user_id] = (userMonthPts[a.user_id] || 0) + (a.points || 0);
         }
       });
 
-      const result = Object.keys(leadersByUnit).map(unitName => ({
+      const { data: studentsData } = await supabase
+        .from('users')
+        .select('id, name, unit, email, photo')
+        .eq('role', 'student')
+        .eq('is_active', true);
+
+      const leadersByUnit: Record<string, any> = {};
+      studentsData?.forEach(s => {
+        const u = s.unit || 'Sem Unidade';
+        const pts = userMonthPts[s.id] || 0;
+        if (!leadersByUnit[u] || pts > leadersByUnit[u].score) {
+          if (pts > 0) {
+            leadersByUnit[u] = {
+              id: s.id,
+              name: s.name,
+              score: pts,
+              email: s.email,
+              photo: s.photo
+            };
+          }
+        }
+      });
+
+      const uniqueUnits = Array.from(new Set((studentsData || []).map(u => u.unit).filter(Boolean)));
+      if (uniqueUnits.length === 0) uniqueUnits.push('Sem Unidade');
+
+      const result = uniqueUnits.sort().map(unitName => ({
         unit: unitName,
         monthlyLeader: leadersByUnit[unitName] || {
           id: null,
