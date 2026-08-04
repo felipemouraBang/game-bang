@@ -26,7 +26,8 @@ export const UNITS = [
   'Tramandai Muay',
   'Canoas Muaythai',
   'Canoas Fitness',
-  'Canoas Igara'
+  'Canoas Igara',
+  'Cachoeirinha'
 ];
 
 export default function Register() {

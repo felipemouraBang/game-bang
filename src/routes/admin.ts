@@ -203,6 +203,18 @@ router.post('/remove-points', authenticate, authorize(['admin']), async (req, re
       .eq('id', userId);
 
     if (updateError) return res.status(500).json({ error: updateError.message });
+
+    // Record point removal in actions table for complete auditability
+    await supabase.from('actions').insert({
+      user_id: userId,
+      challenge_id: null,
+      type: 'admin_adjustment',
+      title: 'Remoção de Pontos (Admin)',
+      description: `Pontos removidos manualmente pelo administrador (${points} pts - ${type})`,
+      points: -points,
+      status: 'approved',
+      created_at: new Date().toISOString()
+    });
   }
 
   logAction(req.user.id, 'REMOVE_POINTS', `Removed ${points} points (${type}) from user ${userId}`);
@@ -240,6 +252,18 @@ router.post('/add-points', authenticate, authorize(['admin']), async (req, res) 
       .eq('id', userId);
 
     if (updateError) return res.status(500).json({ error: updateError.message });
+
+    // Record point addition in actions table so recalculations preserve it
+    await supabase.from('actions').insert({
+      user_id: userId,
+      challenge_id: null,
+      type: 'admin_adjustment',
+      title: 'Ajuste de Pontos (Admin)',
+      description: `Pontos adicionados manualmente pelo administrador (${points} pts - ${type})`,
+      points: points,
+      status: 'approved',
+      created_at: new Date().toISOString()
+    });
   }
 
   logAction(req.user.id, 'ADD_POINTS', `Added ${points} points (${type}) to user ${userId}`);

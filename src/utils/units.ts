@@ -11,6 +11,7 @@ export const getReceptionistUnits = (nickname: string): string[] => {
     case 'Canoas': return ['Canoas Muaythai', 'Canoas Fitness'];
     case 'Canoas Igara': return ['Canoas Igara'];
     case 'Zona Leste': return ['Cristiano Muay', 'Cristiano Fitness'];
-    default: return [];
+    case 'Cachoeirinha': return ['Cachoeirinha'];
+    default: return nickname ? [nickname] : [];
   }
 };

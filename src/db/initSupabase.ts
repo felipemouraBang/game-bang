@@ -68,7 +68,9 @@ export async function initSupabaseDb() {
       { name: 'Recepção Tramandai', login: 'recepcao_tramandai', role: 'receptionist', nickname: 'Tramandai', email: 'recepcao@tramandai.com', unit: 'Tramandai' },
       { name: 'Recepção Igara', login: 'recepcao_igara', role: 'receptionist', nickname: 'Canoas Igara', email: 'recepcao_igara@bang.com', unit: 'Canoas Igara' },
       { name: 'Recepção Igara (Acento)', login: 'recpção_igara', role: 'receptionist', nickname: 'Canoas Igara', email: 'recpcao_igara_alt@bang.com', unit: 'Canoas Igara' },
-      { name: 'Canoas Rondon', login: 'canoas_rondon', role: 'receptionist', nickname: 'Canoas', email: 'canoas_rondon@bang.com', unit: 'Canoas' }
+      { name: 'Canoas Rondon', login: 'canoas_rondon', role: 'receptionist', nickname: 'Canoas', email: 'canoas_rondon@bang.com', unit: 'Canoas' },
+      { name: 'Recepção Cachoeirinha', login: 'Cachoeirinha', role: 'receptionist', nickname: 'Cachoeirinha', email: 'recepcao_cachoeirinha@bang.com', unit: 'Cachoeirinha' },
+      { name: 'Recepção Cachoeirinha (Lower)', login: 'recepcao_cachoeirinha', role: 'receptionist', nickname: 'Cachoeirinha', email: 'recepcao_cachoeirinha_alt@bang.com', unit: 'Cachoeirinha' }
     ];
 
     for (const rec of receptionists) {
@@ -113,76 +115,6 @@ export async function initSupabaseDb() {
         is_active: true
       });
       console.log('Default Student created in Supabase.');
-    }
-
-    // Recalculate monthly scores for all students, keeping only monthly points made from 01/06/2026 onwards
-    const migrationKey = 'recalculated_monthly_points_from_june_2026';
-    const isAlreadyRecalculated = await getSetting(migrationKey, '');
-
-    if (isAlreadyRecalculated !== 'true') {
-      console.log('[Recalculate_June] Recalculating monthly points from 2026-06-01 onwards...');
-
-      const { data: students, error: studentsError } = await supabase
-        .from('users')
-        .select('id, name, score_monthly')
-        .eq('role', 'student');
-
-      if (studentsError) {
-        console.error('[Recalculate_June] Error fetching students:', studentsError);
-      } else if (students) {
-        console.log(`[Recalculate_June] Found ${students.length} students to recalculate.`);
-
-        for (const student of students) {
-          const { data: actions, error: actionsError } = await supabase
-            .from('actions')
-            .select('points')
-            .eq('user_id', student.id)
-            .eq('status', 'approved')
-            .gte('created_at', '2026-06-01T00:00:00.000Z');
-
-          if (actionsError) {
-            console.error(`[Recalculate_June] Error fetching actions for student ${student.name} (ID: ${student.id}):`, actionsError);
-            continue;
-          }
-
-          const totalPoints = actions ? actions.reduce((sum, act) => sum + (act.points || 0), 0) : 0;
-
-          const { error: updateError } = await supabase
-            .from('users')
-            .update({ score_monthly: totalPoints })
-            .eq('id', student.id);
-
-          if (updateError) {
-            console.error(`[Recalculate_June] Error updating student ${student.name} (ID: ${student.id}) score:`, updateError);
-          } else {
-            console.log(`[Recalculate_June] Student ${student.name} score updated from ${student.score_monthly} to ${totalPoints}`);
-          }
-        }
-      }
-
-      await setSetting(migrationKey, 'true');
-      console.log('[Recalculate_June] Recalculation migration finished successfully.');
-    }
-
-    // Migration: Correct July Hall of Fame entries to June, and reset/recalculate monthly points from July 1st, 2026 onwards
-    const migrationJulyKey = 'fix_july_winners_and_recalculate_july_2026';
-    const isAlreadyRecalculatedJuly = await getSetting(migrationJulyKey, '');
-
-    if (isAlreadyRecalculatedJuly !== 'true') {
-      console.log('[Migration_July] Fixing July Hall of Fame entries to June...');
-      // Update hall_of_fame: 2026-07 -> 2026-06
-      const { error: hofUpdateError } = await supabase
-        .from('hall_of_fame')
-        .update({ period_identifier: '2026-06' })
-        .eq('period_type', 'month')
-        .eq('period_identifier', '2026-07');
-
-      if (hofUpdateError) {
-        console.error('[Migration_July] Error correcting July HOF entries:', hofUpdateError);
-      } else {
-        console.log('[Migration_July] Corrected July HOF entries to June successfully.');
-      }
-      await setSetting(migrationJulyKey, 'true');
     }
 
     // Always recalculate student scores (monthly strictly for current month, annual for current year)
@@ -233,16 +165,13 @@ export async function initSupabaseDb() {
         let mPoints = mActions ? mActions.reduce((sum, act) => sum + (act.points || 0), 0) : 0;
         let aPoints = aActions ? aActions.reduce((sum, act) => sum + (act.points || 0), 0) : 0;
 
-        // Natália Gil minimum preservation
-        if (student.name?.includes('Natália Gil')) {
-          aPoints = Math.max(aPoints, 532);
-          mPoints = Math.max(mPoints, 131);
-        }
+        // Annual points must NEVER decrease automatically during server startup
+        const safeAnnualScore = Math.max(student.score_annual || 0, aPoints);
 
-        if (student.score_monthly !== mPoints || student.score_annual !== aPoints) {
+        if (student.score_monthly !== mPoints || student.score_annual !== safeAnnualScore) {
           await supabase
             .from('users')
-            .update({ score_monthly: mPoints, score_annual: aPoints })
+            .update({ score_monthly: mPoints, score_annual: safeAnnualScore })
             .eq('id', student.id);
         }
       }
